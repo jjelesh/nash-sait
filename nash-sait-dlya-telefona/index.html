@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Наш сайт">
+  <meta name="theme-color" content="#f6d6df">
+  <link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
+  <link rel="manifest" href="manifest.json">
+  <title>Наш сайт для Дарьи</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400;1,600;1,700&family=Great+Vibes&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body class="home">
+  <svg class="stage" viewBox="0 0 1672 941" preserveAspectRatio="xMidYMid slice" aria-label="Цветок с разделами">
+    <defs>
+      <radialGradient id="petalGlow">
+        <stop offset="0" stop-color="#fff" stop-opacity=".95"/>
+        <stop offset=".6" stop-color="#ffe3ec" stop-opacity=".6"/>
+        <stop offset="1" stop-color="#ff9fbf" stop-opacity="0"/>
+      </radialGradient>
+      <filter id="soft" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="9"/></filter>
+      <filter id="halo" x="-30%" y="-80%" width="160%" height="260%"><feGaussianBlur stdDeviation="10"/></filter>
+      <linearGradient id="goldGrad" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0" stop-color="#fff3d6"/>
+        <stop offset=".5" stop-color="#d9b46e"/>
+        <stop offset="1" stop-color="#a87b3a"/>
+      </linearGradient>
+      <radialGradient id="medalCore" cx=".35" cy=".3">
+        <stop offset="0" stop-color="#fff"/>
+        <stop offset="1" stop-color="#f6bcd0"/>
+      </radialGradient>
+    </defs>
+    <image href="assets/bg.webp" width="1672" height="941"/>
+    <g id="sparkles"></g>
+    <g id="petals"></g>
+  </svg>
+
+  <details class="today-chip">
+    <summary class="pill" id="todaySummary">Сегодня</summary>
+    <ul id="todayList"></ul>
+  </details>
+
+  <nav class="petal-list" id="petalList"></nav>
+
+  <div class="home-bar">
+    <a class="pill" href="section.html?s=plan">План на завтра</a>
+    <button class="pill" data-export>Сохранить копию</button>
+    <button class="pill" data-import>Загрузить копию</button>
+  </div>
+
+  <script src="js/store.js"></script>
+  <script src="js/sections.js"></script>
+  <script>
+    // Где на картинке лежит каждый лепесток (в пикселях картинки 1672×941):
+    // блик (cx, cy, rx, ry, наклон), подпись (lx, ly) и значок в медальоне.
+    const SPOTS = {
+      english:  { cx: 750,  cy: 525, rx: 75, ry: 42, rot: -62, lx: 735,  ly: 500, icon: 'Aa' },
+      chinese:  { cx: 925,  cy: 525, rx: 75, ry: 42, rot: 62,  lx: 945,  ly: 500, icon: '中' },
+      ddz:      { cx: 630,  cy: 570, rx: 85, ry: 34, rot: -18, lx: 600,  ly: 572, icon: '✎' },
+      abroad:   { cx: 1050, cy: 570, rx: 85, ry: 34, rot: 18,  lx: 1080, ly: 572, icon: '✈' },
+      ai:       { cx: 1050, cy: 670, rx: 85, ry: 36, rot: -12, lx: 1060, ly: 665, icon: '✦' },
+      reading:  { cx: 1035, cy: 790, rx: 95, ry: 45, rot: -28, lx: 1045, ly: 790, icon: '❦' },
+      plan:     { cx: 655,  cy: 790, rx: 95, ry: 45, rot: 28,  lx: 640,  ly: 790, icon: '☾' },
+      popular:  { cx: 640,  cy: 670, rx: 85, ry: 36, rot: 12,  lx: 625,  ly: 665, icon: '★' }
+    };
+    const NS = 'http://www.w3.org/2000/svg';
+    const el = (tag, attrs, parent) => {
+      const n = document.createElementNS(NS, tag);
+      Object.entries(attrs).forEach(([k, v]) => n.setAttribute(k, v));
+      parent && parent.appendChild(n);
+      return n;
+    };
+
+    const petals = document.getElementById('petals');
+    const list = document.getElementById('petalList');
+    SECTIONS.forEach((s, i) => {
+      const p = SPOTS[s.id];
+      const href = 'section.html?s=' + s.id;
+      const a = el('a', { href, class: 'petal-hit', 'aria-label': s.petal, style: '--i:' + i }, petals);
+      // Свечение в форме лепестка (миндаль), повёрнутое как настоящий лепесток.
+      const rx = p.rx * 1.2, ry = p.ry * 1.25;
+      const almond = `M${-rx},0 C${-rx * 0.35},${-ry * 1.25} ${rx * 0.45},${-ry * 1.05} ${rx},0 C${rx * 0.45},${ry * 1.05} ${-rx * 0.35},${ry * 1.25} ${-rx},0 Z`;
+      const g = el('g', { transform: `translate(${p.cx} ${p.cy}) rotate(${p.rot})` }, a);
+      el('path', { class: 'glow', d: almond, filter: 'url(#soft)' }, g);
+      el('path', { class: 'edge', d: almond }, g);
+      el('path', { d: almond, fill: 'transparent' }, g);
+
+      // Подпись: мягкое световое облачко, медальон с иконкой, текст, золотой вензель.
+      const lg = el('g', { class: 'label-group' }, a);
+      const halo = el('ellipse', { class: 'label-halo', cy: p.ly, ry: 26, filter: 'url(#halo)' }, lg);
+      const medal = el('g', { class: 'medal' }, lg);
+      el('circle', { r: 17, class: 'medal-ring' }, medal);
+      el('circle', { r: 13, class: 'medal-core' }, medal);
+      el('text', { class: 'medal-icon' }, medal).textContent = p.icon;
+      const t = el('text', { class: 'label', y: p.ly }, lg);
+      t.textContent = s.petal;
+      const orn = el('path', { class: 'orn' }, lg);
+      const place = () => {
+        const w = t.getComputedTextLength();
+        const total = w + 44;
+        const left = p.lx - total / 2;
+        medal.setAttribute('transform', `translate(${left + 17} ${p.ly})`);
+        t.setAttribute('x', left + 44 + w / 2);
+        halo.setAttribute('cx', p.lx);
+        halo.setAttribute('rx', total / 2 + 26);
+        const ox = left + 44, oy = p.ly + 19;
+        orn.setAttribute('d', `M${ox},${oy} H${ox + w / 2 - 6} l6,-4 l6,4 l-6,4 l-6,-4 M${ox + w / 2 + 6},${oy} H${ox + w}`);
+        orn.style.transformOrigin = `${ox + w / 2}px ${oy}px`;
+      };
+      place();
+      document.fonts && document.fonts.ready.then(place);
+
+      const li = document.createElement('a');
+      li.href = href;
+      li.textContent = s.petal;
+      list.appendChild(li);
+    });
+
+    // Мерцающие искорки над цветком.
+    const sp = document.getElementById('sparkles');
+    for (let i = 0; i < 22; i++) {
+      const x = 520 + Math.random() * 640, y = 440 + Math.random() * 420, r = 1.5 + Math.random() * 2.5;
+      el('circle', { class: 'sparkle', cx: x, cy: y, r, style: `animation-delay:${(Math.random() * 3).toFixed(2)}s;animation-duration:${(2 + Math.random() * 3).toFixed(2)}s` }, sp);
+    }
+
+    // «Сегодня»: задачи из всех планеров на сегодняшний день.
+    const week = store.weekKey(), day = store.todayIndex();
+    const items = [];
+    SECTIONS.forEach((s) => store.get(s.id + ':planner:' + week, [[], [], [], [], [], [], []])[day]
+      .forEach((t) => !t.done && items.push([s.title, t.t])));
+    const tm = store.get('plan:tomorrow', null);
+    if (tm && tm.for === new Date().toLocaleDateString('sv-SE')) tm.items.forEach((t) => !t.done && items.push(['план', t.t]));
+    document.getElementById('todaySummary').textContent = items.length ? 'Дел на сегодня: ' + items.length + ' ♥' : 'Сегодня: дел пока нет';
+    document.getElementById('todayList').innerHTML = items.length
+      ? items.map(([a, b]) => `<li><i>${a}:</i> ${b.replace(/</g, '&lt;')}</li>`).join('')
+      : '<li>Загляни в лепесток «План и энергия» и набросай день.</li>';
+  </script>
+  <script src="js/effects.js"></script>
+</body>
+</html>

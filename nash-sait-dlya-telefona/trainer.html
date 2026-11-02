@@ -1,0 +1,242 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Наш сайт">
+  <meta name="theme-color" content="#f6d6df">
+  <link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
+  <link rel="manifest" href="manifest.json">
+  <title>Тренажёр</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400;1,600;1,700&family=Great+Vibes&family=Noto+Serif+SC:wght@600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body class="spread-page">
+  <header class="topnav">
+    <a class="crown" href="index.html" title="К цветку">
+      <svg viewBox="0 0 34 24" fill="none" stroke="#c39a55" stroke-width="1.6"><path d="M3 20 L5 7 L11 13 L17 3 L23 13 L29 7 L31 20 Z" fill="#f8c9d8"/><path d="M3 22 H31"/></svg>
+      к цветку
+    </a>
+    <nav class="petal-nav" id="nav"></nav>
+  </header>
+
+  <main class="book">
+    <div class="page left">
+      <div class="page-head"><h1 id="title"></h1><p class="sub" id="sub"></p></div>
+      <div class="trainer-tabs" id="tabs"></div>
+      <div class="group-pick" id="groups"></div>
+      <p class="stats" id="stats"></p>
+      <div id="mode"></div>
+    </div>
+    <div class="page right">
+      <section class="card">
+        <h3>Все слова</h3>
+        <input class="search" id="search" placeholder="Поиск…">
+        <div class="scroll-x"><table class="vtable" id="table"></table></div>
+      </section>
+    </div>
+  </main>
+
+  <script src="js/store.js"></script>
+  <script src="js/sections.js"></script>
+  <script src="js/widgets.js"></script>
+  <script src="js/verbs-data.js"></script>
+  <script src="js/hsk-data.js"></script>
+  <script>
+    const t = new URLSearchParams(location.search).get('t') || 'verbs';
+    const isVerbs = t === 'verbs';
+    const back = isVerbs ? 'english' : 'chinese';
+    const learnedKey = 'learned:' + t, missKey = 'miss:' + t, groupKey = 'groups:' + t;
+
+    // Единый формат слова: id, группа, поля для карточки и теста.
+    let ALL = [];
+    if (isVerbs) {
+      VERBS.forEach(([g, list]) => list.forEach(([a, b, c, ru]) => ALL.push({ id: a, group: g, a, b, c, ru })));
+    } else {
+      HSK[t].forEach(([han, py, ru], i) => ALL.push({ id: han + i, group: 'Слова ' + (Math.floor(i / 50) * 50 + 1) + '–' + Math.min(HSK[t].length, Math.floor(i / 50) * 50 + 50), han, py, ru, n: i + 1 }));
+    }
+    const GROUPS = [...new Set(ALL.map((w) => w.group))];
+
+    document.getElementById('title').textContent = isVerbs ? 'Irregular verbs' : t.toUpperCase();
+    document.getElementById('sub').textContent = isVerbs ? 'неправильные глаголы с твоего листка' : (t === 'hsk3' ? 'словарь HSK 3 (3.0)' : 'словарь HSK 4 (3.0)');
+    document.title = (isVerbs ? 'Глаголы' : t.toUpperCase()) + ' · тренажёр';
+    document.getElementById('nav').append(
+      h('a', { href: 'section.html?s=' + back }, '‹ ' + (isVerbs ? 'English' : '中文')),
+      ...['verbs', 'hsk3', 'hsk4'].map((k) => h('a', { href: 'trainer.html?t=' + k, class: k === t ? 'on' : '' }, k === 'verbs' ? 'Глаголы' : k.toUpperCase())));
+
+    const learned = () => new Set(store.get(learnedKey, []));
+    const setLearned = (id, on) => {
+      const s = learned();
+      on ? s.add(id) : s.delete(id);
+      store.set(learnedKey, [...s]);
+    };
+    const misses = () => store.get(missKey, {});
+    const addMiss = (id, d) => { const m = misses(); m[id] = Math.max(0, (m[id] || 0) + d); if (!m[id]) delete m[id]; store.set(missKey, m); };
+
+    // Выбор групп (по умолчанию для HSK первые 50 слов, для глаголов все).
+    let picked = new Set(store.get(groupKey, isVerbs ? GROUPS : [GROUPS[0]]));
+    let filter = 'new';
+    const groupsEl = document.getElementById('groups');
+    function renderGroups() {
+      groupsEl.replaceChildren(
+        ...GROUPS.map((g) => h('label', {}, h('input', { type: 'checkbox', checked: picked.has(g), onchange: (e) => {
+          e.target.checked ? picked.add(g) : picked.delete(g);
+          if (!picked.size) picked.add(g), (e.target.checked = true);
+          store.set(groupKey, [...picked]);
+          start();
+        } }), ' ' + g)),
+        h('select', { onchange: (e) => { filter = e.target.value; start(); } },
+          h('option', { value: 'new', selected: filter === 'new' }, 'только невыученные'),
+          h('option', { value: 'all', selected: filter === 'all' }, 'все'),
+          h('option', { value: 'miss', selected: filter === 'miss' }, 'мои ошибки')));
+    }
+
+    function pool() {
+      const L = learned(), M = misses();
+      let p = ALL.filter((w) => picked.has(w.group));
+      if (filter === 'new') p = p.filter((w) => !L.has(w.id));
+      if (filter === 'miss') p = ALL.filter((w) => M[w.id]);
+      return p.sort(() => Math.random() - 0.5);
+    }
+
+    function stats() {
+      const L = learned();
+      const inGroups = ALL.filter((w) => picked.has(w.group));
+      document.getElementById('stats').textContent =
+        'Выучено ' + L.size + ' из ' + ALL.length + ' · в выбранном: ' + inGroups.filter((w) => L.has(w.id)).length + ' из ' + inGroups.length +
+        ' · ошибок на повтор: ' + Object.keys(misses()).length;
+    }
+
+    // ---------- Режимы ----------
+    const modeEl = document.getElementById('mode');
+    let mode = 'cards', queue = [];
+
+    function done() {
+      modeEl.replaceChildren(h('div', { class: 'quiz' },
+        h('p', { class: 'q' }, '♥'),
+        h('p', {}, filter === 'miss' ? 'Ошибок на повтор нет. Умница.' : 'В этой подборке всё пройдено. Выбери другие группы или «все».')));
+    }
+
+    function cards() {
+      if (!queue.length) return done();
+      const w = queue[0];
+      const front = isVerbs
+        ? [h('div', { class: 'big' }, w.a), h('div', { class: 'small' }, w.ru)]
+        : [h('div', { class: 'big han' }, w.han), h('div', { class: 'small' }, '№ ' + w.n)];
+      const backSide = isVerbs
+        ? [h('div', { class: 'big' }, w.b), h('div', { class: 'mid' }, w.c), h('div', { class: 'small' }, w.group)]
+        : [h('div', { class: 'mid' }, w.py), h('div', { class: 'big', style: 'font-size:28px' }, w.ru)];
+      const flash = h('div', { class: 'flash', onclick: () => flash.classList.toggle('flipped') },
+        h('div', { class: 'flash-inner' }, h('div', { class: 'face' }, ...front, h('div', { class: 'small' }, 'нажми, чтобы перевернуть')), h('div', { class: 'face back' }, ...backSide)));
+      const next = (know) => {
+        queue.shift();
+        if (know) { setLearned(w.id, true); addMiss(w.id, -1); window.fx && fx.celebrate(); } else { addMiss(w.id, 1); queue.splice(Math.min(queue.length, 4), 0, w); }
+        stats(); cards();
+      };
+      modeEl.replaceChildren(flash, h('div', { class: 'flash-btns' },
+        h('button', { class: 'btn no', onclick: () => next(false) }, 'Ещё не знаю'),
+        h('button', { class: 'btn', onclick: () => next(true) }, 'Знаю ♥')),
+        h('p', { class: 'stats' }, 'Осталось в подборке: ' + queue.length));
+    }
+
+    const norm = (s) => s.toLowerCase().replace(/\s+/g, ' ').trim();
+    const okForm = (input, answer) => answer.split('/').map(norm).includes(norm(input)) || norm(input) === norm(answer);
+
+    function quiz() {
+      if (!queue.length) return done();
+      const w = queue[0];
+      const fb = h('p', { class: 'feedback' });
+      const finish = (right) => {
+        if (right) { setLearned(w.id, true); addMiss(w.id, -1); window.fx && fx.celebrate(); } else addMiss(w.id, 1);
+        stats();
+        const nextBtn = h('button', { class: 'btn', onclick: () => { queue.shift(); if (!right) queue.push(w); quiz(); } }, 'Дальше ›');
+        modeEl.querySelector('.quiz').append(nextBtn);
+        nextBtn.focus();
+      };
+      if (isVerbs) {
+        const i2 = h('input', { placeholder: '2 форма', autocomplete: 'off', autocapitalize: 'off' });
+        const i3 = h('input', { placeholder: '3 форма', autocomplete: 'off', autocapitalize: 'off' });
+        let checked = false;
+        const check = () => {
+          if (checked) return;
+          checked = true;
+          const r2 = okForm(i2.value, w.b), r3 = okForm(i3.value, w.c);
+          i2.className = r2 ? 'right' : 'wrong';
+          i3.className = r3 ? 'right' : 'wrong';
+          fb.textContent = r2 && r3 ? 'Верно ♥' : 'Правильно: ' + w.a + ' · ' + w.b + ' · ' + w.c;
+          finish(r2 && r3);
+        };
+        [i2, i3].forEach((i) => i.addEventListener('keydown', (e) => { if (e.key === 'Enter') (i === i2 && !i3.value ? i3.focus() : check()); }));
+        modeEl.replaceChildren(h('div', { class: 'quiz' },
+          h('p', { class: 'q' }, w.a), h('p', { class: 'muted' }, w.ru),
+          h('div', { class: 'quiz-inputs' }, i2, i3),
+          h('button', { class: 'btn', onclick: check }, 'Проверить'), fb));
+        i2.focus();
+      } else {
+        const opts = [w];
+        while (opts.length < 4) {
+          const o = ALL[Math.floor(Math.random() * ALL.length)];
+          if (!opts.includes(o)) opts.push(o);
+        }
+        opts.sort(() => Math.random() - 0.5);
+        let answered = false;
+        const btns = opts.map((o) => h('button', { onclick: (e) => {
+          if (answered) return;
+          answered = true;
+          btns.forEach((b, i) => opts[i] === w && b.classList.add('right'));
+          if (o !== w) e.currentTarget.classList.add('wrong');
+          fb.textContent = w.py + ' · ' + w.ru;
+          finish(o === w);
+        } }, o.ru));
+        modeEl.replaceChildren(h('div', { class: 'quiz' },
+          h('p', { class: 'q han' }, w.han), h('p', { class: 'muted' }, 'выбери перевод'),
+          h('div', { class: 'options' }, btns), fb));
+      }
+    }
+
+    function start() {
+      renderGroups();
+      stats();
+      queue = pool();
+      mode === 'cards' ? cards() : quiz();
+      renderTable();
+    }
+
+    const tabs = document.getElementById('tabs');
+    function renderTabs() {
+      tabs.replaceChildren(...[['cards', 'Карточки'], ['quiz', 'Тест']].map(([m, l]) =>
+        h('button', { class: m === mode ? 'on' : '', onclick: () => { mode = m; renderTabs(); start(); } }, l)));
+    }
+
+    // ---------- Таблица ----------
+    const table = document.getElementById('table');
+    const search = document.getElementById('search');
+    function renderTable() {
+      const q = norm(search.value);
+      const L = learned();
+      const rows = [];
+      let lastGroup = null;
+      ALL.forEach((w) => {
+        const text = isVerbs ? [w.a, w.b, w.c, w.ru].join(' ') : [w.han, w.py, w.ru].join(' ');
+        if (q && !norm(text).includes(q)) return;
+        if (w.group !== lastGroup) { rows.push(h('tr', { class: 'grp' }, h('td', { colspan: 4 }, w.group))); lastGroup = w.group; }
+        const tr = h('tr', { class: L.has(w.id) ? 'learned' : '', title: 'Нажми, чтобы отметить выученным', style: 'cursor:pointer', onclick: () => { setLearned(w.id, !learned().has(w.id)); stats(); renderTable(); } },
+          ...(isVerbs
+            ? [h('td', {}, h('b', {}, w.a)), h('td', {}, w.b), h('td', {}, w.c), h('td', { class: 'muted' }, w.ru)]
+            : [h('td', { class: 'h' }, w.han), h('td', {}, w.py), h('td', { class: 'muted' }, w.ru)]));
+        rows.push(tr);
+      });
+      table.replaceChildren(...rows);
+    }
+    search.addEventListener('input', renderTable);
+
+    renderTabs();
+    start();
+  </script>
+  <script src="js/effects.js"></script>
+</body>
+</html>

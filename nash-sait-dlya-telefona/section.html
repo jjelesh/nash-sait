@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Наш сайт">
+  <meta name="theme-color" content="#f6d6df">
+  <link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
+  <link rel="manifest" href="manifest.json">
+  <title>Разворот</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400;1,600;1,700&family=Great+Vibes&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body class="spread-page">
+  <header class="topnav">
+    <a class="crown" href="index.html" title="К цветку">
+      <svg viewBox="0 0 34 24" fill="none" stroke="#c39a55" stroke-width="1.6"><path d="M3 20 L5 7 L11 13 L17 3 L23 13 L29 7 L31 20 Z" fill="#f8c9d8"/><path d="M3 22 H31"/></svg>
+      к цветку
+    </a>
+    <nav class="petal-nav" id="nav"></nav>
+  </header>
+
+  <main class="book">
+    <div class="page left" id="left"></div>
+    <div class="page right" id="right"></div>
+  </main>
+
+  <footer class="foot">
+    <button class="pill" data-export>Сохранить копию</button>
+    <button class="pill" data-import>Загрузить копию</button>
+  </footer>
+
+  <script src="js/store.js"></script>
+  <script src="js/sections.js"></script>
+  <script src="js/widgets.js"></script>
+  <script>
+    const id = new URLSearchParams(location.search).get('s');
+    const sec = SECTIONS.find((s) => s.id === id) || SECTIONS[0];
+    document.title = sec.title + ' · Наш сайт';
+
+    document.getElementById('nav').append(...SECTIONS.map((s) =>
+      h('a', { href: 'section.html?s=' + s.id, class: s === sec ? 'on' : '' }, s.petal)));
+
+    const flourish = () => {
+      const d = document.createElement('div');
+      d.innerHTML = '<svg class="flourish" viewBox="0 0 220 16" fill="none" stroke="currentColor" stroke-width="1"><path d="M0 8 H90 M130 8 H220"/><path d="M110 2 C104 2 100 8 110 14 C120 8 116 2 110 2 Z" fill="#f8c9d8"/><circle cx="96" cy="8" r="2"/><circle cx="124" cy="8" r="2"/></svg>';
+      return d.firstChild;
+    };
+
+    const left = document.getElementById('left');
+    left.append(
+      h('div', { class: 'page-head' }, h('h1', {}, sec.title), h('p', { class: 'sub' }, sec.subtitle)),
+      flourish(),
+      ...sec.left.map((w) => renderWidget(w, sec.id)));
+
+    const right = document.getElementById('right');
+    right.append(
+      h('p', { class: 'motto' }, sec.motto),
+      flourish(),
+      ...sec.right.map((w) => renderWidget(w, sec.id)));
+  </script>
+  <script src="js/effects.js"></script>
+</body>
+</html>
