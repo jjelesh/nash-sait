@@ -54,7 +54,8 @@ window.SECTIONS = [
     left: [
       { type: 'trainer', title: 'Тренажёры слов', items: [
         { href: 'trainer.html?t=hsk3', label: 'HSK 3 · 500 слов', note: 'из твоего словаря HSK 3.0' },
-        { href: 'trainer.html?t=hsk4', label: 'HSK 4 · 975 слов', note: 'из твоего словаря HSK 4 3.0' }
+        { href: 'trainer.html?t=hsk4', label: 'HSK 4 · 975 слов', note: 'из твоего словаря HSK 4 3.0' },
+        { href: 'grammar.html', label: 'Грамматика HSK 1–5', note: '151 правило с примерами, правило дня' }
       ] },
       { type: 'files', title: 'Мои материалы', items: [
         { label: 'Словарь HSK 3 (3.0)', href: 'materials/hsk3-slovar.pdf' },
@@ -80,7 +81,8 @@ window.SECTIONS = [
         { label: 'Часов аудирования', max: 50, step: 1 }
       ], auto: [
         { label: 'Слов HSK 3 выучено', from: 'learned:hsk3', max: 500 },
-        { label: 'Слов HSK 4 выучено', from: 'learned:hsk4', max: 975 }
+        { label: 'Слов HSK 4 выучено', from: 'learned:hsk4', max: 975 },
+        { label: 'Правил грамматики знаю', from: 'grammar:known', max: 151 }
       ] },
       { type: 'planner', title: 'Планер недели' },
       { type: 'notes', title: 'Заметки и грамматика' }
@@ -183,6 +185,7 @@ window.SECTIONS = [
     subtitle: 'завтра, неделя, сон, вода, спорт',
     motto: 'Сильная личность, это просто человек, который делает план и выполняет его.',
     left: [
+      { type: 'calendar', title: 'Календарь дисциплины' },
       { type: 'tomorrow', title: 'План на завтра' },
       { type: 'allweek', title: 'Неделя из всех разделов' }
     ],

@@ -13,7 +13,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400;1,600;1,700&family=Great+Vibes&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/style.css?v=202611030148">
 </head>
 <body class="spread-page">
   <header class="topnav">
@@ -34,9 +34,10 @@
     <button class="pill" data-import>Загрузить копию</button>
   </footer>
 
-  <script src="js/store.js"></script>
-  <script src="js/sections.js"></script>
-  <script src="js/widgets.js"></script>
+  <script src="js/store.js?v=202611030148"></script>
+  <script src="js/discipline.js?v=202611030148"></script>
+  <script src="js/sections.js?v=202611030148"></script>
+  <script src="js/widgets.js?v=202611030148"></script>
   <script>
     const id = new URLSearchParams(location.search).get('s');
     const sec = SECTIONS.find((s) => s.id === id) || SECTIONS[0];
@@ -63,6 +64,6 @@
       flourish(),
       ...sec.right.map((w) => renderWidget(w, sec.id)));
   </script>
-  <script src="js/effects.js"></script>
+  <script src="js/effects.js?v=202611030148"></script>
 </body>
 </html>

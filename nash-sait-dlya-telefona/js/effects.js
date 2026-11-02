@@ -5,6 +5,8 @@
   const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   let on = store.get('fx', true) && !reduce;
   const home = document.body.classList.contains('home');
+  const trainer = /trainer\.html/.test(location.pathname);
+  const touch = matchMedia('(pointer: coarse)').matches;
 
   const PINKS = ['#ffd1df', '#ffc0d3', '#f9a8c2', '#ffe4ec', '#f48fb1', '#fff0f5'];
   const GOLD = ['#e8cf9f', '#c39a55', '#fff3d6'];
@@ -21,7 +23,7 @@
   const fctx = fg.getContext('2d');
   let W = 0, H = 0, dpr = 1;
   function resize() {
-    dpr = Math.min(2, window.devicePixelRatio || 1);
+    dpr = touch ? 1 : Math.min(1.5, window.devicePixelRatio || 1);
     W = innerWidth; H = innerHeight;
     [bg, fg].forEach((c) => { c.width = W * dpr; c.height = H * dpr; c.style.width = W + 'px'; c.style.height = H + 'px'; });
     bctx.setTransform(dpr, 0, 0, dpr, 0, 0);
@@ -35,7 +37,7 @@
 
   // ---------- Падающие лепестки (фон) ----------
   const petals = [];
-  const PETALS = home ? (W < 700 ? 26 : 46) : (W < 700 ? 10 : 18);
+  const PETALS = home ? (touch ? 18 : 40) : trainer ? (touch ? 5 : 9) : (touch ? 8 : 16);
   function newPetal(top) {
     return {
       x: rnd(-40, W + 40), y: top ? rnd(-H, 0) : rnd(0, H),
@@ -46,67 +48,74 @@
   }
   for (let i = 0; i < PETALS; i++) petals.push(newPetal(false));
 
+  // Каждую форму рисуем один раз в маленький холст и дальше только копируем:
+  // так анимация не тормозит даже со множеством частиц.
+  const sprites = {};
+  const SP = 64;
+  function sprite(kind, col) {
+    const key = kind + col;
+    if (sprites[key]) return sprites[key];
+    const c = document.createElement('canvas');
+    c.width = c.height = SP;
+    const x = c.getContext('2d');
+    x.translate(SP / 2, SP / 2);
+    const s = SP * 0.3;
+    if (kind === 'petal') {
+      const g = x.createLinearGradient(0, -s * 1.4, 0, s * 1.4);
+      g.addColorStop(0, '#fff');
+      g.addColorStop(1, col);
+      x.fillStyle = g;
+      x.beginPath();
+      x.moveTo(0, -s * 1.4);
+      x.bezierCurveTo(s * 1.3, -s * 0.85, s, s, 0, s * 1.4);
+      x.bezierCurveTo(-s, s, -s * 1.3, -s * 0.85, 0, -s * 1.4);
+      x.fill();
+    } else {
+      x.shadowColor = 'rgba(255,255,255,.9)';
+      x.shadowBlur = 8;
+      x.fillStyle = col;
+      x.beginPath();
+      if (kind === 'heart') {
+        x.moveTo(0, s * 0.55);
+        x.bezierCurveTo(-s * 1.5, -s * 0.45, -s * 0.7, -s * 1.5, 0, -s * 0.7);
+        x.bezierCurveTo(s * 0.7, -s * 1.5, s * 1.5, -s * 0.45, 0, s * 0.55);
+      } else {
+        for (let i = 0; i < 4; i++) {
+          const ang = (i * Math.PI) / 2;
+          x.lineTo(Math.cos(ang) * s * 1.5, Math.sin(ang) * s * 1.5);
+          x.lineTo(Math.cos(ang + Math.PI / 4) * s * 0.42, Math.sin(ang + Math.PI / 4) * s * 0.42);
+        }
+        x.closePath();
+      }
+      x.fill();
+    }
+    return (sprites[key] = c);
+  }
+
+  // size: примерный радиус фигуры в пикселях экрана.
+  function blit(ctx, img, x, y, size, rot, sy, a) {
+    const k = size / (SP * 0.3);
+    const cos = Math.cos(rot) * k, sin = Math.sin(rot) * k;
+    ctx.globalAlpha = a;
+    ctx.setTransform(dpr * cos, dpr * sin, -dpr * sin * sy, dpr * cos * sy, dpr * x, dpr * y);
+    ctx.drawImage(img, -SP / 2, -SP / 2);
+  }
+
   function drawPetal(ctx, p) {
-    ctx.save();
-    ctx.translate(p.x, p.y);
-    ctx.rotate(p.rot);
-    ctx.scale(1, Math.abs(Math.cos(p.flip)) * 0.7 + 0.3);
-    ctx.globalAlpha = p.a;
-    const g = ctx.createLinearGradient(0, -p.s, 0, p.s);
-    g.addColorStop(0, '#fff');
-    g.addColorStop(1, p.col);
-    ctx.fillStyle = g;
-    ctx.beginPath();
-    ctx.moveTo(0, -p.s);
-    ctx.bezierCurveTo(p.s * 0.9, -p.s * 0.6, p.s * 0.7, p.s * 0.7, 0, p.s);
-    ctx.bezierCurveTo(-p.s * 0.7, p.s * 0.7, -p.s * 0.9, -p.s * 0.6, 0, -p.s);
-    ctx.fill();
-    ctx.restore();
+    blit(ctx, sprite('petal', p.col), p.x, p.y, p.s * 0.72, p.rot, Math.abs(Math.cos(p.flip)) * 0.7 + 0.3, p.a);
   }
 
   // ---------- Сердечки, поднимающиеся снизу (только на главной) ----------
   const floaters = [];
-  function heartPath(ctx, s) {
-    ctx.beginPath();
-    ctx.moveTo(0, s * 0.35);
-    ctx.bezierCurveTo(-s, -s * 0.3, -s * 0.45, -s, 0, -s * 0.45);
-    ctx.bezierCurveTo(s * 0.45, -s, s, -s * 0.3, 0, s * 0.35);
-  }
-  function drawHeart(ctx, x, y, s, col, a, rot) {
-    ctx.save();
-    ctx.translate(x, y);
-    ctx.rotate(rot || 0);
-    ctx.globalAlpha = a;
-    ctx.fillStyle = col;
-    ctx.shadowColor = 'rgba(255,255,255,.8)';
-    ctx.shadowBlur = 6;
-    heartPath(ctx, s);
-    ctx.fill();
-    ctx.restore();
-  }
-  function drawStar(ctx, x, y, s, col, a, rot) {
-    ctx.save();
-    ctx.translate(x, y);
-    ctx.rotate(rot || 0);
-    ctx.globalAlpha = a;
-    ctx.fillStyle = col;
-    ctx.shadowColor = '#fff';
-    ctx.shadowBlur = 8;
-    ctx.beginPath();
-    for (let i = 0; i < 4; i++) {
-      const ang = (i * Math.PI) / 2;
-      ctx.lineTo(Math.cos(ang) * s, Math.sin(ang) * s);
-      ctx.lineTo(Math.cos(ang + Math.PI / 4) * s * 0.28, Math.sin(ang + Math.PI / 4) * s * 0.28);
-    }
-    ctx.closePath();
-    ctx.fill();
-    ctx.restore();
-  }
+  const drawHeart = (ctx, x, y, s, col, a, rot) => blit(ctx, sprite('heart', col), x, y, s, rot || 0, 1, a);
+  const drawStar = (ctx, x, y, s, col, a, rot) => blit(ctx, sprite('star', col), x, y, s, rot || 0, 1, a);
 
   // ---------- Частицы переднего плана: искры курсора и взрывы ----------
   const parts = [];
+  const MAX_PARTS = touch ? 90 : 180;
   function spawn(x, y, n, opts) {
     if (!on) return;
+    n = Math.min(n, MAX_PARTS - parts.length);
     opts = opts || {};
     for (let i = 0; i < n; i++) {
       const ang = rnd(0, Math.PI * 2), sp = rnd(opts.min || 1.5, opts.max || 5);
@@ -124,7 +133,7 @@
   addEventListener('pointermove', (e) => {
     if (!on || e.pointerType === 'touch') return;
     const now = performance.now();
-    if (now - lastTrail < 28) return;
+    if (now - lastTrail < 40 || parts.length > MAX_PARTS) return;
     lastTrail = now;
     parts.push({
       x: e.clientX + rnd(-4, 4), y: e.clientY + rnd(-4, 4), vx: rnd(-0.4, 0.4), vy: rnd(0.2, 0.9),
@@ -138,8 +147,10 @@
   function frame(now) {
     const dt = Math.min(3, (now - t0) / 16.7);
     t0 = now;
-    bctx.clearRect(0, 0, W, H);
-    fctx.clearRect(0, 0, W, H);
+    bctx.setTransform(1, 0, 0, 1, 0, 0);
+    fctx.setTransform(1, 0, 0, 1, 0, 0);
+    bctx.clearRect(0, 0, bg.width, bg.height);
+    fctx.clearRect(0, 0, fg.width, fg.height);
     if (on) {
       petals.forEach((p, i) => {
         p.sway += 0.02 * dt;
@@ -199,7 +210,7 @@
     if (!on) return;
     x = x == null ? W / 2 : x;
     y = y == null ? H * 0.45 : y;
-    spawn(x, y, 45, { min: 3, max: 9, smax: 12, lift: 3, gravity: 0.12 });
+    spawn(x, y, touch ? 18 : 28, { min: 3, max: 9, smax: 12, lift: 3, gravity: 0.12 });
   }
 
   // ---------- Переходы между страницами ----------
@@ -207,7 +218,7 @@
     const a = e.target.closest('a[href]');
     if (!a || !on || e.defaultPrevented || e.metaKey || e.ctrlKey || e.shiftKey || a.target === '_blank') return;
     const href = a.getAttribute('href');
-    if (!/^(index|section|trainer)\.html/.test(href)) return;
+    if (!/^(index|section|trainer|grammar)\.html/.test(href)) return;
     e.preventDefault();
     if (a.classList.contains('petal-hit')) celebrate(e.clientX, e.clientY);
     document.body.classList.add('fx-leaving');
@@ -240,7 +251,7 @@
     if (!('IntersectionObserver' in window) || !on) { cards.forEach((c) => c.classList.add('fx-in')); return; }
     const io = new IntersectionObserver((entries) => entries.forEach((en) => {
       if (en.isIntersecting) { en.target.classList.add('fx-in'); io.unobserve(en.target); }
-    }), { threshold: 0.08 });
+    }), { threshold: 0, rootMargin: '0px 0px -30px 0px' });
     cards.forEach((c, i) => { c.style.setProperty('--d', (i % 6) * 0.08 + 's'); c.classList.add('fx-reveal'); io.observe(c); });
   }
 

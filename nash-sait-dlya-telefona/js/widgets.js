@@ -334,7 +334,7 @@
     const display = h('div', { class: 'clock' }, '25:00');
     const doneKey = 'plan:pomos:' + todayISO();
     const doneEl = h('p', { class: 'muted' });
-    const showDone = () => { doneEl.textContent = 'Помидорок сегодня: ' + store.get(doneKey, 0) + ' 🍅'; };
+    const showDone = () => { doneEl.textContent = 'Клубничек сегодня: ' + store.get(doneKey, 0) + ' 🍓'; };
     let mode = 25;
     const t = countdown(display, () => {
       if (mode >= 25) store.set(doneKey, store.get(doneKey, 0) + 1);
@@ -438,6 +438,51 @@
       setTimeout(() => (ask.textContent = 'Спросить DeepSeek'), 3000);
     } }, 'Спросить DeepSeek');
     return card({ type: 'ideas', title: 'Генератор идей' }, out, h('div', { class: 'idea-btns' }, h('button', { class: 'btn', onclick: gen }, 'Дай идею ✦'), save, ask));
+  };
+
+  // Календарь дисциплины: сердечко — день с учёбой, увядшая роза — пропуск.
+  W.calendar = (w) => {
+    const D = window.discipline;
+    let view = new Date();
+    view.setDate(1);
+    const head = h('div', { class: 'cal-head' });
+    const grid = h('div', { class: 'cal' });
+    const info = h('div', { class: 'cal-stats' });
+    const render = () => {
+      const a = D.activity(), s = D.stats(), today = D.day();
+      const y = view.getFullYear(), m = view.getMonth();
+      head.replaceChildren(
+        h('button', { class: 'x', onclick: () => { view.setMonth(m - 1); render(); } }, '‹'),
+        h('b', {}, view.toLocaleDateString('ru-RU', { month: 'long', year: 'numeric' })),
+        h('button', { class: 'x', onclick: () => { view.setMonth(m + 1); render(); } }, '›'));
+      const cells = DAYS.map((d) => h('span', { class: 'cal-dow' }, d));
+      const lead = (new Date(y, m, 1).getDay() + 6) % 7;
+      for (let i = 0; i < lead; i++) cells.push(h('span', {}));
+      const len = new Date(y, m + 1, 0).getDate();
+      let act = 0, miss = 0;
+      for (let d = 1; d <= len; d++) {
+        const iso = D.day(new Date(y, m, d, 12));
+        const n = a[iso] || 0;
+        let cls = 'cal-day', mark = '';
+        if (n) { cls += ' on lvl' + (n >= 10 ? 3 : n >= 4 ? 2 : 1); mark = '♥'; act++; }
+        else if (iso < today && iso >= s.started) { cls += ' missed'; mark = '🥀'; miss++; }
+        if (iso === today) cls += ' today';
+        cells.push(h('span', { class: cls, title: n ? n + ' действий' : '' }, h('i', {}, String(d)), h('em', {}, mark)));
+      }
+      grid.replaceChildren(...cells);
+      info.replaceChildren(
+        h('span', {}, h('b', {}, '💋 ' + s.streak), ' подряд'),
+        h('span', {}, h('b', {}, '★ ' + s.best), ' рекорд'),
+        h('span', {}, h('b', {}, '♥ ' + act), ' в этом месяце'),
+        h('span', {}, h('b', {}, '🥀 ' + miss), ' пропусков'));
+    };
+    render();
+    document.addEventListener('activity', render);
+    return card(w, info, head, grid,
+      h('div', { class: 'idea-btns' },
+        h('button', { class: 'btn-ghost', onclick: () => D.demo() }, 'Показать, как ругают'),
+        h('button', { class: 'btn-ghost', onclick: () => D.toast(D.PRAISE[Math.floor(Math.random() * D.PRAISE.length)], 0, 'sweet') }, 'Показать, как хвалят')),
+      h('p', { class: 'muted' }, 'День засчитывается сам, когда ты отмечаешь задачу, учишь слово, проходишь тест, собираешь клубничку и т. п. Пропустишь — Лелуш и Джошуа это заметят.'));
   };
 
   window.renderWidget = (w, sid) => (W[w.type] ? W[w.type](w, sid) : card(w, '…'));

@@ -13,7 +13,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400;1,600;1,700&family=Great+Vibes&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/style.css?v=202611030148">
 </head>
 <body class="home">
   <svg class="stage" viewBox="0 0 1672 941" preserveAspectRatio="xMidYMid slice" aria-label="Цветок с разделами">
@@ -53,8 +53,9 @@
     <button class="pill" data-import>Загрузить копию</button>
   </div>
 
-  <script src="js/store.js"></script>
-  <script src="js/sections.js"></script>
+  <script src="js/store.js?v=202611030148"></script>
+  <script src="js/discipline.js?v=202611030148"></script>
+  <script src="js/sections.js?v=202611030148"></script>
   <script>
     // Где на картинке лежит каждый лепесток (в пикселях картинки 1672×941):
     // блик (cx, cy, rx, ry, наклон), подпись (lx, ly) и значок в медальоне.
@@ -140,6 +141,6 @@
       ? items.map(([a, b]) => `<li><i>${a}:</i> ${b.replace(/</g, '&lt;')}</li>`).join('')
       : '<li>Загляни в лепесток «План и энергия» и набросай день.</li>';
   </script>
-  <script src="js/effects.js"></script>
+  <script src="js/effects.js?v=202611030148"></script>
 </body>
 </html>

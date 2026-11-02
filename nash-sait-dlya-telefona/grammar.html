@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Наш сайт">
+  <meta name="theme-color" content="#f6d6df">
+  <link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
+  <link rel="manifest" href="manifest.json">
+  <title>Грамматика HSK</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400;1,600;1,700&family=Great+Vibes&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css?v=202611030148">
+</head>
+<body class="spread-page">
+  <header class="topnav">
+    <a class="crown" href="index.html" title="К цветку">
+      <svg viewBox="0 0 34 24" fill="none" stroke="#c39a55" stroke-width="1.6"><path d="M3 20 L5 7 L11 13 L17 3 L23 13 L29 7 L31 20 Z" fill="#f8c9d8"/><path d="M3 22 H31"/></svg>
+      к цветку
+    </a>
+    <nav class="petal-nav">
+      <a href="section.html?s=chinese">‹ 中文</a>
+      <a href="trainer.html?t=hsk3">HSK3 слова</a>
+      <a href="trainer.html?t=hsk4">HSK4 слова</a>
+      <a href="grammar.html" class="on">Грамматика</a>
+    </nav>
+  </header>
+
+  <main class="book">
+    <div class="page left">
+      <div class="page-head"><h1>语法</h1><p class="sub">грамматика HSK 1–5</p></div>
+      <p class="stats" id="stats"></p>
+      <div class="trainer-tabs" id="levels"></div>
+      <section class="card"><h3>Правило дня</h3><div id="day"></div></section>
+    </div>
+    <div class="page right">
+      <section class="card">
+        <h3>Все правила</h3>
+        <input class="search" id="search" placeholder="Поиск: 把, если, сравнение…">
+        <div id="list"></div>
+      </section>
+    </div>
+  </main>
+
+  <footer class="foot">
+    <button class="pill" data-export>Сохранить копию</button>
+    <button class="pill" data-import>Загрузить копию</button>
+  </footer>
+
+  <script src="js/store.js?v=202611030148"></script>
+  <script src="js/discipline.js?v=202611030148"></script>
+  <script src="js/sections.js?v=202611030148"></script>
+  <script src="js/widgets.js?v=202611030148"></script>
+  <script src="js/grammar-data.js?v=202611030148"></script>
+  <script src="js/grammar-ui.js?v=202611030148"></script>
+  <script>
+    const LEVELS = [1, 2, 3, 4, 5];
+    let level = store.get('grammar:level', 0); // 0 = все уровни
+    const levelsEl = document.getElementById('levels');
+    const search = document.getElementById('search');
+
+    function stats() {
+      const k = grammarUI.known();
+      document.getElementById('stats').textContent = 'Знаю ' + GRAMMAR.filter((r) => k.has(grammarUI.id(r))).length + ' из ' + GRAMMAR.length + ' правил · ' +
+        LEVELS.map((l) => 'HSK' + l + ': ' + GRAMMAR.filter((r) => r[0] === l && k.has(grammarUI.id(r))).length + '/' + GRAMMAR.filter((r) => r[0] === l).length).join(' · ');
+    }
+
+    function render() {
+      levelsEl.replaceChildren(...[0, ...LEVELS].map((l) => h('button', { class: l === level ? 'on' : '', onclick: () => { level = l; store.set('grammar:level', l); render(); } }, l ? 'HSK ' + l : 'Все')));
+      document.getElementById('day').replaceChildren(grammarUI.ruleOfDay(level ? [level] : LEVELS, () => { stats(); renderList(); }));
+      renderList();
+      stats();
+    }
+
+    function renderList() {
+      const q = search.value.trim().toLowerCase();
+      const rows = [];
+      let last = null;
+      GRAMMAR.forEach((r) => {
+        if (level && r[0] !== level) return;
+        if (q && !(r[1] + ' ' + r[2] + ' ' + r[3] + ' ' + r[4].flat().join(' ')).toLowerCase().includes(q)) return;
+        if (r[0] !== last) { rows.push(h('h4', { class: 'rule-level' }, 'HSK ' + r[0])); last = r[0]; }
+        rows.push(grammarUI.ruleRow(r, stats));
+      });
+      document.getElementById('list').replaceChildren(...(rows.length ? rows : [h('p', { class: 'muted' }, 'Ничего не нашлось.')]));
+    }
+    search.addEventListener('input', renderList);
+    render();
+  </script>
+  <script src="js/effects.js?v=202611030148"></script>
+</body>
+</html>
