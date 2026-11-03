@@ -3,7 +3,7 @@
 // Вечером, если день пустой, предупреждают. Первая галочка дня — хвалят.
 (function () {
   // Какие сохранения считаются учёбой (а не просто сменой настроек).
-  const ACT = /(:planner:|:deadlines|:check:|:units|:progress|^learned:|^miss:|^plan:pomos|^plan:habits|^plan:tomorrow|:board:|^grammar:known)/;
+  const ACT = /(:planner:|:deadlines|:check:|:units|:progress|^learned:|^miss:|^plan:pomos|^plan:habits|^plan:tomorrow|:board:|^grammar:known|^events$|^focus:min:|^en:)/;
   const day = (d) => (d || new Date()).toLocaleDateString('sv-SE');
   const addDays = (iso, n) => { const d = new Date(iso + 'T12:00'); d.setDate(d.getDate() + n); return day(d); };
   const rawSet = store.set;
@@ -99,7 +99,7 @@
     return '<img class="portrait" alt="" src="assets/heroes/' + WHO[who].img + '-' + (mood || 'angry') + '.jpg" onerror="this.outerHTML=this.dataset.fb" data-fb="' + fallback.replace(/"/g, '&quot;') + '">';
   }
   function figure(who) {
-    const src = WHO[who].full ? 'assets/heroes/' + WHO[who].img + '-full-angry.jpg' : 'assets/heroes/cats-full.jpg';
+    const src = WHO[who].full ? 'assets/heroes/' + WHO[who].img + '-cut-angry.png' : 'assets/heroes/cats-full.jpg';
     return '<div class="scold-figure"><img alt="" src="' + src + '" onerror="this.parentNode.remove()"></div>';
   }
 

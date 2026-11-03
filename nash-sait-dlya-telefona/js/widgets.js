@@ -485,6 +485,9 @@
       h('p', { class: 'muted' }, 'День засчитывается сам, когда ты отмечаешь задачу, учишь слово, проходишь тест, собираешь клубничку и т. п. Пропустишь — Лелуш и Джошуа это заметят.'));
   };
 
-  window.renderWidget = (w, sid) => (W[w.type] ? W[w.type](w, sid) : card(w, '…'));
+  window.renderWidget = (w, sid) => {
+    const f = (window.WIDGETS_EXTRA && window.WIDGETS_EXTRA[w.type]) || W[w.type];
+    return f ? f(w, sid) : card(w, '…');
+  };
   window.h = h;
 })();

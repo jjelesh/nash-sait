@@ -37,7 +37,7 @@
 
   // ---------- Падающие лепестки (фон) ----------
   const petals = [];
-  const PETALS = home ? (touch ? 18 : 40) : trainer ? (touch ? 5 : 9) : (touch ? 8 : 16);
+  const PETALS = home ? (touch ? 22 : 46) : trainer ? (touch ? 8 : 14) : (touch ? 12 : 26);
   function newPetal(top) {
     return {
       x: rnd(-40, W + 40), y: top ? rnd(-H, 0) : rnd(0, H),
@@ -218,7 +218,7 @@
     const a = e.target.closest('a[href]');
     if (!a || !on || e.defaultPrevented || e.metaKey || e.ctrlKey || e.shiftKey || a.target === '_blank') return;
     const href = a.getAttribute('href');
-    if (!/^(index|section|trainer|grammar)\.html/.test(href)) return;
+    if (!/^(index|section|trainer|grammar|english)\.html/.test(href)) return;
     e.preventDefault();
     if (a.classList.contains('petal-hit')) celebrate(e.clientX, e.clientY);
     document.body.classList.add('fx-leaving');
@@ -273,6 +273,80 @@
     setTimeout(revealCards, 30);
   }
   document.readyState === 'loading' ? document.addEventListener('DOMContentLoaded', init) : init();
+
+  // ---------- Волна от нажатия на кнопки ----------
+  const RIPPLE = '.btn, .btn-ghost, .pill, .trainer-btn, .day-tabs button, .trainer-tabs button, .petal-nav a, .units button, .stepper button, .options button, .cal-day';
+  document.addEventListener('pointerdown', (e) => {
+    if (!on) return;
+    const el = e.target.closest(RIPPLE);
+    if (!el) return;
+    const r = el.getBoundingClientRect();
+    const size = Math.max(r.width, r.height) * 2.2;
+    const rip = document.createElement('span');
+    rip.className = 'ripple';
+    rip.style.cssText = `width:${size}px;height:${size}px;left:${e.clientX - r.left}px;top:${e.clientY - r.top}px`;
+    if (getComputedStyle(el).position === 'static') el.style.position = 'relative';
+    el.appendChild(rip);
+    setTimeout(() => rip.remove(), 700);
+  }, true);
+
+  // ---------- Наклон карточек-кнопок и подсветка карточек за мышкой ----------
+  if (!touch) {
+    document.addEventListener('pointermove', (e) => {
+      if (!on) return;
+      const t = e.target.closest('.trainer-btn, .links a');
+      document.querySelectorAll('.fx-tilted').forEach((el) => { if (el !== t) { el.style.removeProperty('--rx'); el.style.removeProperty('--ry'); el.classList.remove('fx-tilted'); } });
+      if (t) {
+        const r = t.getBoundingClientRect();
+        t.style.setProperty('--ry', ((e.clientX - r.left) / r.width - 0.5) * 10 + 'deg');
+        t.style.setProperty('--rx', -((e.clientY - r.top) / r.height - 0.5) * 10 + 'deg');
+        t.classList.add('fx-tilted');
+      }
+      const c = e.target.closest('.card');
+      if (c) {
+        const r = c.getBoundingClientRect();
+        c.style.setProperty('--mx', e.clientX - r.left + 'px');
+        c.style.setProperty('--my', e.clientY - r.top + 'px');
+      }
+    }, { passive: true });
+  }
+
+  // ---------- Искорки-блики на карточках и кнопках ----------
+  setInterval(() => {
+    if (!on || document.hidden) return;
+    const pool = [...document.querySelectorAll('.btn, .trainer-btn, .page-head h1, .main-quest, .ring, .clock, .pill')]
+      .filter((el) => { const r = el.getBoundingClientRect(); return r.width && r.bottom > 0 && r.top < innerHeight; });
+    if (!pool.length) return;
+    const el = pool[Math.floor(Math.random() * pool.length)];
+    const r = el.getBoundingClientRect();
+    const g = document.createElement('span');
+    g.className = 'glint';
+    g.style.left = r.left + Math.random() * r.width - 9 + scrollX + 'px';
+    g.style.top = r.top + Math.random() * r.height - 9 + scrollY + 'px';
+    g.style.position = 'absolute';
+    document.body.appendChild(g);
+    setTimeout(() => g.remove(), 1500);
+  }, home ? 700 : 900);
+
+  // ---------- Боке-огоньки за страницей ----------
+  if (!home && on) {
+    const b = document.createElement('div');
+    b.className = 'bokeh';
+    for (let i = 0; i < (touch ? 7 : 14); i++) {
+      const sp = document.createElement('span');
+      const size = 30 + Math.random() * 110;
+      sp.style.cssText = `width:${size}px;height:${size}px;left:${Math.random() * 100}%;top:${Math.random() * 100}%;--t:${10 + Math.random() * 12}s;--d:${-Math.random() * 12}s;--x:${(Math.random() - 0.5) * 160}px;--y:${(Math.random() - 0.5) * 160}px`;
+      b.appendChild(sp);
+    }
+    document.body.prepend(b);
+  }
+
+  // ---------- Салют, когда задача отмечена ----------
+  document.addEventListener('change', (e) => {
+    if (!on || !e.target.matches('input[type=checkbox]') || !e.target.checked) return;
+    const li = e.target.closest('li');
+    if (li) { li.style.transition = 'background .6s'; li.style.background = 'rgba(255, 200, 220, .45)'; setTimeout(() => { li.style.background = ''; }, 700); }
+  });
 
   window.fx = { burst: (x, y) => spawn(x, y, 20), celebrate, revealCards };
 })();

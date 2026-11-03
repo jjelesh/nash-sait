@@ -3,41 +3,39 @@
 window.SECTIONS = [
   {
     id: 'english',
-    petal: 'English · IELTS',
+    petal: 'English · A2 → C1',
     title: 'English',
-    subtitle: 'подготовка к IELTS',
+    subtitle: 'с A2 до C1, IELTS — потом',
     motto: 'Every word today is a door abroad tomorrow.',
     left: [
-      { type: 'trainer', title: 'Тренажёры', items: [
+      { type: 'trainer', title: 'Мой путь', items: [
+        { href: 'english.html', label: 'Путь A2 → C1', note: 'слова, грамматика, тексты, аудио, эссе, говорение' },
         { href: 'trainer.html?t=verbs', label: 'Неправильные глаголы', note: 'твой листок: таблица, карточки, тест' }
       ] },
       { type: 'links', title: 'Мои Quizlet', items: [
         { label: 'Quizlet: папка слов №1', href: 'https://quizlet.com/user/m9cbjfh2gn/folders/jjj' },
         { label: 'Quizlet: папка слов №2', href: 'https://quizlet.com/user/m9cbjfh2gn/folders/193461996' }
       ] },
-      { type: 'links', title: 'Подготовка к IELTS', items: [
-        { label: 'IELTS Liz', note: 'советы и разборы всех частей', href: 'https://ieltsliz.com' },
-        { label: 'Take IELTS · British Council', note: 'официальная подготовка', href: 'https://takeielts.britishcouncil.org/take-ielts/prepare' },
-        { label: 'IELTS.org · ресурсы', note: 'официальные примеры заданий', href: 'https://ielts.org/take-a-test/preparation-resources' },
-        { label: 'IELTS Online Tests', note: 'пробники на время', href: 'https://ieltsonlinetests.com' },
-        { label: 'BBC Learning English', href: 'https://www.bbc.co.uk/learningenglish' },
-        { label: 'LearnEnglish · British Council', href: 'https://learnenglish.britishcouncil.org' },
-        { label: 'YouGlish', note: 'как слово звучит у носителей', href: 'https://youglish.com' }
-      ] },
       { type: 'files', title: 'Мои учебники', items: [
-        { label: 'Синий Мерфи (Essential Grammar in Use)', href: 'materials/murphy-blue.pdf' },
-        { label: 'Intermediate Grammar in Use', href: 'materials/intermediate-grammar-in-use.pdf' },
+        { label: 'Синий Мерфи (Essential Grammar in Use) — A1–B1', href: 'materials/murphy-blue.pdf' },
+        { label: 'Intermediate Grammar in Use — B1–B2', href: 'materials/intermediate-grammar-in-use.pdf' },
         { label: 'Голицынский, грамматика, 7-е изд.', href: 'materials/golitsynsky.pdf' }
+      ] },
+      { type: 'links', title: 'IELTS — на потом (с уровня B2)', items: [
+        { label: 'IELTS Liz', note: 'советы и разборы всех частей', href: 'https://ieltsliz.com' },
+        { label: 'Take IELTS · British Council', href: 'https://takeielts.britishcouncil.org/take-ielts/prepare' },
+        { label: 'IELTS Online Tests', note: 'пробники на время', href: 'https://ieltsonlinetests.com' }
       ] }
     ],
     right: [
-      { type: 'progress', title: 'Мой IELTS', items: [
-        { label: 'Listening, балл', max: 9, step: 0.5 },
-        { label: 'Reading, балл', max: 9, step: 0.5 },
-        { label: 'Writing, балл', max: 9, step: 0.5 },
-        { label: 'Speaking, балл', max: 9, step: 0.5 },
-        { label: 'Пробников сделано', max: 20, step: 1 },
-        { label: 'Эссе написано', max: 30, step: 1 }
+      { type: 'progress', title: 'Мой английский', items: [
+        { label: 'Текстов прочитано', max: 100, step: 1 },
+        { label: 'Подкастов / видео прослушано', max: 100, step: 1 },
+        { label: 'Минут говорения вслух', max: 600, step: 5 },
+        { label: 'Пробников IELTS (потом)', max: 20, step: 1 }
+      ], auto: [
+        { label: 'Тем грамматики знаю (A2–C1)', from: 'en:known', max: 72 },
+        { label: 'Эссе написано', from: 'en:essays', max: 50 }
       ] },
       { type: 'units', title: 'Синий Мерфи: юниты', count: 114 },
       { type: 'units', title: 'Intermediate: юниты', count: 145, key: 'units-inter' },
@@ -152,6 +150,7 @@ window.SECTIONS = [
       { type: 'tip', title: 'Чтобы правда не залипать', text: 'Сайт не может закрыть весь интернет сам. Поставь в браузер бесплатное расширение LeechBlock NG (Chrome, Firefox) или программу Cold Turkey и внеси туда сайты с манхвой и соцсети. А этот сайт сделай стартовой страницей.' }
     ],
     right: [
+      { type: 'urge', title: 'Хочу залипнуть' },
       { type: 'log', title: 'Зачем я заходила', key: 'gate-log' },
       { type: 'notes', title: 'Хорошие запросы для DeepSeek' }
     ]
@@ -182,15 +181,19 @@ window.SECTIONS = [
     id: 'plan',
     petal: 'План и энергия',
     title: 'План и энергия',
-    subtitle: 'завтра, неделя, сон, вода, спорт',
-    motto: 'Сильная личность, это просто человек, который делает план и выполняет его.',
+    subtitle: 'сегодня, расписание, календарь, клубнички',
+    motto: 'Сильная личность — это просто человек, который делает план и выполняет его.',
     left: [
-      { type: 'calendar', title: 'Календарь дисциплины' },
+      { type: 'today', title: 'Сегодня' },
+      { type: 'dayview', title: 'Расписание дня' },
       { type: 'tomorrow', title: 'План на завтра' },
       { type: 'allweek', title: 'Неделя из всех разделов' }
     ],
     right: [
-      { type: 'timer', title: 'Фокус-таймер' },
+      { type: 'timer', title: 'Клубничный фокус' },
+      { type: 'whatnow', title: 'Не знаю, что делать' },
+      { type: 'urge', title: 'Хочу залипнуть' },
+      { type: 'calendar', title: 'Календарь' },
       { type: 'habits', title: 'Энергия недели', items: ['Сон 8 часов', '2 литра воды', 'Спорт или прогулка', 'Без манхвы', 'Лечь до 23:30'] },
       { type: 'notes', title: 'Мысли' }
     ]

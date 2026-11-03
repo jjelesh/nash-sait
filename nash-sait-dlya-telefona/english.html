@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Наш сайт">
+  <meta name="theme-color" content="#f6d6df">
+  <link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
+  <link rel="manifest" href="manifest.json">
+  <title>English A2 → C1</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400;1,600;1,700&family=Great+Vibes&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css?v=202611031538">
+</head>
+<body class="spread-page">
+  <header class="topnav">
+    <a class="crown" href="index.html" title="К цветку">
+      <svg viewBox="0 0 34 24" fill="none" stroke="#c39a55" stroke-width="1.6"><path d="M3 20 L5 7 L11 13 L17 3 L23 13 L29 7 L31 20 Z" fill="#f8c9d8"/><path d="M3 22 H31"/></svg>
+      к цветку
+    </a>
+    <nav class="petal-nav">
+      <a href="section.html?s=english">‹ English</a>
+      <a href="#grammar">Грамматика</a>
+      <a href="#words">Слова</a>
+      <a href="#read">Чтение</a>
+      <a href="#listen">Аудио</a>
+      <a href="#write">Эссе</a>
+      <a href="#speak">Говорение</a>
+    </nav>
+  </header>
+
+  <main class="book">
+    <div class="page left" id="left"></div>
+    <div class="page right" id="right"></div>
+  </main>
+
+  <footer class="foot">
+    <button class="pill" data-export>Сохранить копию</button>
+    <button class="pill" data-import>Загрузить копию</button>
+  </footer>
+
+  <script src="js/store.js?v=202611031538"></script>
+  <script src="js/sync.js?v=202611031538"></script>
+  <script src="js/discipline.js?v=202611031538"></script>
+  <script src="js/sections.js?v=202611031538"></script>
+  <script src="js/widgets.js?v=202611031538"></script>
+  <script src="js/day.js?v=202611031538"></script>
+  <script src="js/english-data.js?v=202611031538"></script>
+  <script>
+    const STEP = ['15 новых слов (Quizlet)', '1 тема грамматики + упражнения в Мерфи', '1 текст своего уровня', '1 аудио или видео', '2 минуты говорения вслух', '1 абзац текста или эссе'];
+    const today = new Date().toLocaleDateString('sv-SE');
+    let lvl = store.get('en:level', 'A2');
+    const card = (title, id, ...kids) => h('section', { class: 'card', id }, h('h3', {}, title), ...kids);
+    const linkList = (items) => h('ul', { class: 'links' }, items.map(([label, href]) => h('li', {}, h('a', { href, target: '_blank', rel: 'noopener' }, h('span', { class: 'link-label' }, label)))));
+    const known = () => new Set(store.get('en:known', []));
+
+    function toggleIn(key, val) {
+      const s = new Set(store.get(key, []));
+      s.has(val) ? s.delete(val) : s.add(val);
+      store.set(key, [...s]);
+    }
+
+    function render() {
+      const L = ENGLISH.find((x) => x.id === lvl);
+      const K = known();
+      const mine = store.get('en:level', 'A2');
+      const kLvl = L.grammar.filter((g) => K.has(L.id + ':' + g[0])).length;
+
+      // ---------- Левая страница: уровень, вехи, шаг дня ----------
+      const step = store.get('en:step:' + today, []);
+      const ms = store.get('en:ms:' + L.id, []);
+      document.getElementById('left').replaceChildren(
+        h('div', { class: 'page-head' }, h('h1', {}, 'English'), h('p', { class: 'sub' }, 'путь с A2 до C1')),
+        h('div', { class: 'trainer-tabs' }, ENGLISH.map((x) => h('button', { class: x.id === lvl ? 'on' : '', onclick: () => { lvl = x.id; render(); } }, x.id + (x.id === mine ? ' ♥' : '')))),
+        card(L.title, 'level',
+          h('p', {}, L.goal),
+          h('p', { class: 'muted' }, 'Срок: ' + L.months + ' · Учебник: ' + L.book),
+          h('p', { class: 'today-stats' }, 'Грамматика уровня: ' + kLvl + ' из ' + L.grammar.length + ' · вехи: ' + ms.length + ' из ' + L.milestones.length),
+          L.id === mine ? h('p', { class: 'all-done' }, 'Это твой уровень сейчас ♥') : h('button', { class: 'btn-ghost', onclick: () => { store.set('en:level', L.id); render(); } }, 'Это мой уровень сейчас')),
+        card('Шаг дня', 'step',
+          h('p', { class: 'muted' }, 'Каждый день понемногу — и через полгода другой английский. Отметки обнуляются каждый день.'),
+          h('ul', { class: 'tasks' }, STEP.map((t, i) => h('li', { class: step.includes(i) ? 'done' : '' }, h('label', {},
+            h('input', { type: 'checkbox', checked: step.includes(i), onchange: () => { toggleIn('en:step:' + today, i); render(); } }), h('span', {}, t)))))),
+        card('Вехи уровня ' + L.id, 'ms',
+          h('ul', { class: 'tasks' }, L.milestones.map((t) => h('li', { class: ms.includes(t) ? 'done' : '' }, h('label', {},
+            h('input', { type: 'checkbox', checked: ms.includes(t), onchange: () => { toggleIn('en:ms:' + L.id, t); render(); } }), h('span', {}, t)))))),
+        card('Как излагать мысли', 'frames',
+          h('p', { class: 'muted' }, 'Не умеешь говорить связно — это навык, а не талант. Бери шаблон и заполняй своими словами:'),
+          h('ul', { class: 'frames' }, L.frames.map((f) => h('li', {}, f))),
+          h('p', { class: 'muted' }, 'Правило: сначала скажи главную мысль одним предложением, потом причину, потом пример, потом снова главную мысль.')));
+
+      // ---------- Правая страница ----------
+      const essays = store.get('en:essays', []);
+      const prompt = h('select', {}, L.write.map(([t, n], i) => h('option', { value: i }, t)));
+      const ta = h('textarea', { rows: 8, placeholder: 'Пиши здесь. Не бойся ошибок — сначала мысль, потом красота.' });
+      ta.value = store.get('en:draft', '');
+      const wc = h('span', { class: 'count-inline' });
+      const upd = () => { const n = (ta.value.trim().match(/\S+/g) || []).length; wc.textContent = n + ' / ' + L.write[+prompt.value][1] + ' слов'; store.set('en:draft', ta.value); };
+      ta.addEventListener('input', upd); prompt.addEventListener('change', upd); upd();
+
+      const sp = L.speak[new Date().getDate() % L.speak.length];
+      const spClock = h('div', { class: 'clock small' }, '2:00');
+      let spIv = null;
+      const startSpeak = () => {
+        let left = 120; clearInterval(spIv);
+        spIv = setInterval(() => {
+          left--; spClock.textContent = Math.floor(left / 60) + ':' + String(left % 60).padStart(2, '0');
+          if (left <= 0) { clearInterval(spIv); spClock.textContent = 'Готово ♥'; window.fx && fx.celebrate(); const p = store.get('english:progress', {}); p['Минут говорения вслух'] = (p['Минут говорения вслух'] || 0) + 2; store.set('english:progress', p); }
+        }, 1000);
+      };
+
+      document.getElementById('right').replaceChildren(
+        card('Грамматика ' + L.id, 'grammar',
+          h('p', { class: 'muted' }, 'Нажми на тему, чтобы раскрыть. Отметь «знаю», когда сделаешь упражнения в Мерфи.'),
+          h('div', {}, L.grammar.map((g) => {
+            const id = L.id + ':' + g[0];
+            const row = h('div', { class: 'rule' + (K.has(id) ? ' known' : '') });
+            row.append(
+              h('button', { class: 'rule-head', onclick: () => row.classList.toggle('open') }, h('span', { class: 'lvl' }, L.id), h('b', {}, g[0])),
+              h('div', { class: 'rule-more' }, h('p', { class: 'rule-text' }, g[1]),
+                h('div', { class: 'ex' }, h('div', { class: 'ex-zh', style: 'font-family:inherit' }, g[2]), h('div', { class: 'ex-ru' }, g[3])),
+                h('button', { class: 'btn-ghost know' + (K.has(id) ? ' on' : ''), onclick: () => { toggleIn('en:known', id); render(); } }, K.has(id) ? '✓ знаю' : 'отметить: знаю')));
+            return row;
+          }))),
+        card('Слова', 'words',
+          h('p', {}, 'Цель уровня: ', h('b', {}, L.words.goal + ' слов'), '. ' + L.words.note),
+          linkList([['Quizlet: папка №1', 'https://quizlet.com/user/m9cbjfh2gn/folders/jjj'], ['Quizlet: папка №2', 'https://quizlet.com/user/m9cbjfh2gn/folders/193461996'], ['Oxford 3000 / 5000 по уровням', 'https://www.oxfordlearnersdictionaries.com/wordlists/oxford3000-5000'], ['English Vocabulary Profile (слова по CEFR)', 'https://www.englishprofile.org/wordlists/evp']]),
+          h('a', { class: 'btn-ghost', href: 'trainer.html?t=verbs' }, 'Тренажёр неправильных глаголов ›')),
+        card('Чтение ' + L.id, 'read', linkList(L.read)),
+        card('Аудио ' + L.id, 'listen', linkList(L.listen), h('p', { class: 'muted' }, 'Слушай дважды: сначала без текста, потом с текстом, выписывая новые слова.')),
+        card('Эссе', 'write',
+          prompt, ta,
+          h('div', { class: 'idea-btns' }, wc,
+            h('button', { class: 'btn', onclick: () => {
+              if (!ta.value.trim()) return;
+              essays.unshift({ date: today, prompt: L.write[+prompt.value][0], text: ta.value.trim(), words: (ta.value.trim().match(/\S+/g) || []).length });
+              store.set('en:essays', essays); store.set('en:draft', ''); render();
+            } }, 'Сохранить эссе'),
+            h('a', { class: 'btn-ghost', href: 'https://writeandimprove.com', target: '_blank', rel: 'noopener' }, 'Проверить в Write & Improve')),
+          essays.length ? h('details', {}, h('summary', {}, 'Мои эссе (' + essays.length + ')'),
+            h('ul', { class: 'log' }, essays.map((e) => h('li', {}, h('span', { class: 'tag' }, e.date), h('b', {}, e.words + ' слов'), ' · ' + e.prompt)))) : null),
+        card('Говорение', 'speak',
+          h('p', { class: 'rule-pattern', style: 'font-family:inherit' }, sp),
+          spClock,
+          h('div', { class: 'idea-btns' }, h('button', { class: 'btn', onclick: startSpeak }, 'Говорю 2 минуты'), h('span', { class: 'muted' }, 'Включи диктофон на телефоне и послушай себя потом.')),
+          h('details', {}, h('summary', {}, 'Все темы уровня'), h('ul', { class: 'frames' }, L.speak.map((s) => h('li', {}, s))))));
+    }
+    render();
+    if (location.hash) setTimeout(() => document.querySelector(location.hash)?.scrollIntoView({ behavior: 'smooth' }), 300);
+  </script>
+  <script src="js/effects.js?v=202611031538"></script>
+</body>
+</html>

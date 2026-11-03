@@ -13,7 +13,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400;1,600;1,700&family=Great+Vibes&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/style.css?v=202611030148">
+  <link rel="stylesheet" href="css/style.css?v=202611031538">
 </head>
 <body class="home">
   <svg class="stage" viewBox="0 0 1672 941" preserveAspectRatio="xMidYMid slice" aria-label="Цветок с разделами">
@@ -40,22 +40,37 @@
     <g id="petals"></g>
   </svg>
 
-  <details class="today-chip">
-    <summary class="pill" id="todaySummary">Сегодня</summary>
-    <ul id="todayList"></ul>
-  </details>
+  <aside class="home-greet">
+    <a class="hg-main" href="section.html?s=plan">
+      <span class="hg-hello" id="hgHello">Добрый день</span>
+      <span class="hg-stats" id="hgStats"></span>
+    </a>
+    <details class="hg-more">
+      <summary id="todaySummary">дела на сегодня</summary>
+      <ul id="todayList"></ul>
+    </details>
+  </aside>
 
   <nav class="petal-list" id="petalList"></nav>
 
-  <div class="home-bar">
-    <a class="pill" href="section.html?s=plan">План на завтра</a>
+  <button class="home-menu-btn" id="menuBtn" aria-expanded="false" aria-controls="homeMenu">
+    <svg viewBox="0 0 34 24" aria-hidden="true"><path d="M3 20 L5 7 L11 13 L17 3 L23 13 L29 7 L31 20 Z"/><path d="M3 22 H31"/></svg>
+    <span>меню</span>
+  </button>
+  <div class="home-bar home-menu" id="homeMenu" hidden>
+    <a class="pill pill-main" href="section.html?s=plan">☾ Мой день</a>
+    <button class="pill pill-main" onclick="day.whatNow()">✦ Что мне делать?</button>
+    <button class="pill sos-pill" onclick="day.urge()">♥ SOS: залипаю</button>
+    <span class="menu-sep"></span>
     <button class="pill" data-export>Сохранить копию</button>
     <button class="pill" data-import>Загрузить копию</button>
   </div>
 
-  <script src="js/store.js?v=202611030148"></script>
-  <script src="js/discipline.js?v=202611030148"></script>
-  <script src="js/sections.js?v=202611030148"></script>
+  <script src="js/store.js?v=202611031538"></script>
+  <script src="js/sync.js?v=202611031538"></script>
+  <script src="js/discipline.js?v=202611031538"></script>
+  <script src="js/sections.js?v=202611031538"></script>
+  <script src="js/day.js?v=202611031538"></script>
   <script>
     // Где на картинке лежит каждый лепесток (в пикселях картинки 1672×941):
     // блик (cx, cy, rx, ry, наклон), подпись (lx, ly) и значок в медальоне.
@@ -68,6 +83,17 @@
       reading:  { cx: 1035, cy: 790, rx: 95, ry: 45, rot: -28, lx: 1045, ly: 790, icon: '❦' },
       plan:     { cx: 655,  cy: 790, rx: 95, ry: 45, rot: 28,  lx: 640,  ly: 790, icon: '☾' },
       popular:  { cx: 640,  cy: 670, rx: 85, ry: 36, rot: 12,  lx: 625,  ly: 665, icon: '★' }
+    };
+    // Красивые названия для цветка (в разделах остаются полные).
+    const LABELS = {
+      english: { name: 'Английский', sub: 'A2 → C1' },
+      chinese: { name: 'Китайский', sub: 'HSK 3 · 4 · 中文' },
+      ddz: { name: 'Домашка', sub: 'задания и дедлайны' },
+      abroad: { name: 'Возможности', sub: 'гранты · стажировки' },
+      ai: { name: 'Поиск', sub: 'интернет по делу' },
+      reading: { name: 'Чтение', sub: 'книги вместо манхвы' },
+      plan: { name: 'Мой день', sub: 'план · клубнички' },
+      popular: { name: 'Блог', sub: 'TikTok · Instagram' }
     };
     const NS = 'http://www.w3.org/2000/svg';
     const el = (tag, attrs, parent) => {
@@ -91,34 +117,17 @@
       el('path', { class: 'edge', d: almond }, g);
       el('path', { d: almond, fill: 'transparent' }, g);
 
-      // Подпись: мягкое световое облачко, медальон с иконкой, текст, золотой вензель.
+      // Подпись: каллиграфическое название и маленькая строка под ним, мягкий свет за ними.
+      const L = LABELS[s.id];
       const lg = el('g', { class: 'label-group' }, a);
-      const halo = el('ellipse', { class: 'label-halo', cy: p.ly, ry: 26, filter: 'url(#halo)' }, lg);
-      const medal = el('g', { class: 'medal' }, lg);
-      el('circle', { r: 17, class: 'medal-ring' }, medal);
-      el('circle', { r: 13, class: 'medal-core' }, medal);
-      el('text', { class: 'medal-icon' }, medal).textContent = p.icon;
-      const t = el('text', { class: 'label', y: p.ly }, lg);
-      t.textContent = s.petal;
-      const orn = el('path', { class: 'orn' }, lg);
-      const place = () => {
-        const w = t.getComputedTextLength();
-        const total = w + 44;
-        const left = p.lx - total / 2;
-        medal.setAttribute('transform', `translate(${left + 17} ${p.ly})`);
-        t.setAttribute('x', left + 44 + w / 2);
-        halo.setAttribute('cx', p.lx);
-        halo.setAttribute('rx', total / 2 + 26);
-        const ox = left + 44, oy = p.ly + 19;
-        orn.setAttribute('d', `M${ox},${oy} H${ox + w / 2 - 6} l6,-4 l6,4 l-6,4 l-6,-4 M${ox + w / 2 + 6},${oy} H${ox + w}`);
-        orn.style.transformOrigin = `${ox + w / 2}px ${oy}px`;
-      };
-      place();
-      document.fonts && document.fonts.ready.then(place);
+      el('ellipse', { class: 'label-halo', cx: p.lx, cy: p.ly + 2, rx: 96, ry: 34, filter: 'url(#halo)' }, lg);
+      el('text', { class: 'label', x: p.lx, y: p.ly - 4 }, lg).textContent = L.name;
+      el('text', { class: 'label-sub', x: p.lx, y: p.ly + 22 }, lg).textContent = L.sub;
+      el('path', { class: 'orn', d: `M${p.lx - 34},${p.ly + 34} H${p.lx - 6} l6,-4 l6,4 l-6,4 l-6,-4 M${p.lx + 6},${p.ly + 34} H${p.lx + 34}`, style: `transform-origin:${p.lx}px ${p.ly + 34}px` }, lg);
 
       const li = document.createElement('a');
       li.href = href;
-      li.textContent = s.petal;
+      li.innerHTML = '<b>' + LABELS[s.id].name + '</b><small>' + LABELS[s.id].sub + '</small>';
       list.appendChild(li);
     });
 
@@ -129,18 +138,26 @@
       el('circle', { class: 'sparkle', cx: x, cy: y, r, style: `animation-delay:${(Math.random() * 3).toFixed(2)}s;animation-duration:${(2 + Math.random() * 3).toFixed(2)}s` }, sp);
     }
 
-    // «Сегодня»: задачи из всех планеров на сегодняшний день.
-    const week = store.weekKey(), day = store.todayIndex();
-    const items = [];
-    SECTIONS.forEach((s) => store.get(s.id + ':planner:' + week, [[], [], [], [], [], [], []])[day]
-      .forEach((t) => !t.done && items.push([s.title, t.t])));
-    const tm = store.get('plan:tomorrow', null);
-    if (tm && tm.for === new Date().toLocaleDateString('sv-SE')) tm.items.forEach((t) => !t.done && items.push(['план', t.t]));
-    document.getElementById('todaySummary').textContent = items.length ? 'Дел на сегодня: ' + items.length + ' ♥' : 'Сегодня: дел пока нет';
-    document.getElementById('todayList').innerHTML = items.length
-      ? items.map(([a, b]) => `<li><i>${a}:</i> ${b.replace(/</g, '&lt;')}</li>`).join('')
-      : '<li>Загляни в лепесток «План и энергия» и набросай день.</li>';
+    // Приветствие и задачи дня из всех лепестков, событий и дедлайнов.
+    const g = day.greeting();
+    const items = day.todayItems().filter((i) => !i.done);
+    const st = discipline.stats();
+    document.getElementById('hgHello').textContent = g.hello + ', ' + g.name;
+    document.getElementById('hgStats').textContent = (st.streak ? '💋 ' + st.streak + ' · ' : '') + '🍓 ' + day.berries() + ' · ' + (items.length ? 'дел: ' + items.length : 'дел нет') ;
+    document.getElementById('todaySummary').textContent = items.length ? 'что сегодня ▾' : g.sub;
+
+    // Меню внизу: одна кнопка-корона вместо ряда пилюль.
+    const menuBtn = document.getElementById('menuBtn'), menu = document.getElementById('homeMenu');
+    const setMenu = (open) => { menu.hidden = !open; menuBtn.setAttribute('aria-expanded', open); menuBtn.classList.toggle('open', open); };
+    menuBtn.addEventListener('click', (e) => { e.stopPropagation(); setMenu(menu.hidden); });
+    document.addEventListener('click', (e) => { if (!menu.hidden && !menu.contains(e.target)) setMenu(false); });
+    const todayListEl = document.getElementById('todayList');
+    todayListEl.replaceChildren(...(items.length ? items : [{ t: g.sub }]).map((it) => {
+      const li = document.createElement('li');
+      li.textContent = (it.tag ? it.tag + ': ' : '') + it.t;
+      return li;
+    }));
   </script>
-  <script src="js/effects.js?v=202611030148"></script>
+  <script src="js/effects.js?v=202611031538"></script>
 </body>
 </html>

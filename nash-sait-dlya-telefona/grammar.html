@@ -13,7 +13,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400;1,600;1,700&family=Great+Vibes&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/style.css?v=202611030148">
+  <link rel="stylesheet" href="css/style.css?v=202611031538">
 </head>
 <body class="spread-page">
   <header class="topnav">
@@ -50,12 +50,14 @@
     <button class="pill" data-import>Загрузить копию</button>
   </footer>
 
-  <script src="js/store.js?v=202611030148"></script>
-  <script src="js/discipline.js?v=202611030148"></script>
-  <script src="js/sections.js?v=202611030148"></script>
-  <script src="js/widgets.js?v=202611030148"></script>
-  <script src="js/grammar-data.js?v=202611030148"></script>
-  <script src="js/grammar-ui.js?v=202611030148"></script>
+  <script src="js/store.js?v=202611031538"></script>
+  <script src="js/sync.js?v=202611031538"></script>
+  <script src="js/discipline.js?v=202611031538"></script>
+  <script src="js/sections.js?v=202611031538"></script>
+  <script src="js/widgets.js?v=202611031538"></script>
+  <script src="js/day.js?v=202611031538"></script>
+  <script src="js/grammar-data.js?v=202611031538"></script>
+  <script src="js/grammar-ui.js?v=202611031538"></script>
   <script>
     const LEVELS = [1, 2, 3, 4, 5];
     let level = store.get('grammar:level', 0); // 0 = все уровни
@@ -90,6 +92,6 @@
     search.addEventListener('input', renderList);
     render();
   </script>
-  <script src="js/effects.js?v=202611030148"></script>
+  <script src="js/effects.js?v=202611031538"></script>
 </body>
 </html>
