@@ -37,7 +37,7 @@
 
   // ---------- Падающие лепестки (фон) ----------
   const petals = [];
-  const PETALS = home ? (touch ? 22 : 46) : trainer ? (touch ? 8 : 14) : (touch ? 12 : 26);
+  const PETALS = home ? (touch ? 16 : 34) : trainer ? (touch ? 5 : 9) : (touch ? 8 : 16);
   function newPetal(top) {
     return {
       x: rnd(-40, W + 40), y: top ? rnd(-H, 0) : rnd(0, H),
@@ -252,7 +252,7 @@
     const io = new IntersectionObserver((entries) => entries.forEach((en) => {
       if (en.isIntersecting) { en.target.classList.add('fx-in'); io.unobserve(en.target); }
     }), { threshold: 0, rootMargin: '0px 0px -30px 0px' });
-    cards.forEach((c, i) => { c.style.setProperty('--d', (i % 6) * 0.08 + 's'); c.classList.add('fx-reveal'); io.observe(c); });
+    cards.forEach((c, i) => { c.style.setProperty('--d', (i % 3) * 0.05 + 's'); c.classList.add('fx-reveal'); io.observe(c); });
   }
 
   // ---------- Кнопка вкл/выкл ----------
@@ -292,8 +292,14 @@
 
   // ---------- Наклон карточек-кнопок и подсветка карточек за мышкой ----------
   if (!touch) {
+    let tiltQueued = false, lastE = null;
     document.addEventListener('pointermove', (e) => {
-      if (!on) return;
+      lastE = e;
+      if (!on || tiltQueued) return;
+      tiltQueued = true;
+      requestAnimationFrame(() => { tiltQueued = false; tilt(lastE); });
+    }, { passive: true });
+    const tilt = (e) => {
       const t = e.target.closest('.trainer-btn, .links a');
       document.querySelectorAll('.fx-tilted').forEach((el) => { if (el !== t) { el.style.removeProperty('--rx'); el.style.removeProperty('--ry'); el.classList.remove('fx-tilted'); } });
       if (t) {
@@ -308,7 +314,7 @@
         c.style.setProperty('--mx', e.clientX - r.left + 'px');
         c.style.setProperty('--my', e.clientY - r.top + 'px');
       }
-    }, { passive: true });
+    };
   }
 
   // ---------- Искорки-блики на карточках и кнопках ----------
@@ -326,10 +332,10 @@
     g.style.position = 'absolute';
     document.body.appendChild(g);
     setTimeout(() => g.remove(), 1500);
-  }, home ? 700 : 900);
+  }, home ? 1400 : 1800);
 
   // ---------- Боке-огоньки за страницей ----------
-  if (!home && on) {
+  if (false) {
     const b = document.createElement('div');
     b.className = 'bokeh';
     for (let i = 0; i < (touch ? 7 : 14); i++) {

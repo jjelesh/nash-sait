@@ -194,7 +194,6 @@ window.SECTIONS = [
       { type: 'whatnow', title: 'Не знаю, что делать' },
       { type: 'urge', title: 'Хочу залипнуть' },
       { type: 'calendar', title: 'Календарь' },
-      { type: 'habits', title: 'Энергия недели', items: ['Сон 8 часов', '2 литра воды', 'Спорт или прогулка', 'Без манхвы', 'Лечь до 23:30'] },
       { type: 'notes', title: 'Мысли' }
     ]
   },

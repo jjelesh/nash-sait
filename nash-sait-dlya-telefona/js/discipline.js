@@ -3,7 +3,7 @@
 // Вечером, если день пустой, предупреждают. Первая галочка дня — хвалят.
 (function () {
   // Какие сохранения считаются учёбой (а не просто сменой настроек).
-  const ACT = /(:planner:|:deadlines|:check:|:units|:progress|^learned:|^miss:|^plan:pomos|^plan:habits|^plan:tomorrow|:board:|^grammar:known|^events$|^focus:min:|^en:)/;
+  const ACT = /(:planner:|:deadlines|:check:|:units|:progress|^learned:|^miss:|^plan:pomos|^plan:habits|^plan:tomorrow|:board:|^grammar:known|^events$|^focus:min:|^en:|^musts:done:)/;
   const day = (d) => (d || new Date()).toLocaleDateString('sv-SE');
   const addDays = (iso, n) => { const d = new Date(iso + 'T12:00'); d.setDate(d.getDate() + n); return day(d); };
   const rawSet = store.set;
@@ -14,21 +14,32 @@
 
   function stats() {
     const a = activity(), t = day(), started = store.get('started', t);
-    let streak = 0, d = a[t] ? t : addDays(t, -1);
-    while (a[d]) { streak++; d = addDays(d, -1); }
+    // Поцелуй 💋 — только за день, где выполнено всё: обязательное и все дела дня.
+    const k = store.get('kisses', {});
+    let streak = 0, d = k[t] ? t : addDays(t, -1);
+    while (k[d]) { streak++; d = addDays(d, -1); }
     // Пропущено подряд до сегодняшнего дня (не раньше даты начала).
     let missed = 0;
     d = addDays(t, -1);
     while (d >= started && !a[d]) { missed++; d = addDays(d, -1); }
     let best = 0, run = 0;
-    Object.keys(a).sort().forEach((k, i, arr) => {
+    Object.keys(k).filter((x) => k[x]).sort().forEach((k, i, arr) => {
       run = i && addDays(arr[i - 1], 1) === k ? run + 1 : 1;
       best = Math.max(best, run);
     });
-    return { streak, missed, best, today: a[t] || 0, started };
+    return { streak, missed, best, today: a[t] || 0, started, kissedToday: !!k[t] };
   }
 
   store.set = function (key, value) {
+    const m = /^learned:(hsk3|hsk4|verbs)$/.exec(key);
+    if (m && Array.isArray(value)) {
+      const before = (store.get(key, []) || []).length;
+      const grew = value.length - before;
+      if (grew > 0) {
+        const wk = 'words:' + (m[1] === 'verbs' ? 'en' : 'zh') + ':' + day();
+        rawSet(wk, store.get(wk, 0) + grew);
+      }
+    }
     rawSet(key, value);
     if (!ACT.test(key)) return;
     const a = activity(), t = day();
@@ -117,7 +128,7 @@
 
   function praise(before) {
     const s = stats();
-    const milestone = { 3: '3 дня подряд! Держи поцелуй 💋', 7: 'Неделя без пропусков! Лелуш снял шляпу и поцеловал тебе руку 💋', 14: 'Две недели подряд. Джошуа пишет о тебе стихи.', 30: 'Месяц подряд. Ты и есть сильная личность.' }[s.streak];
+    const milestone = null;
     setTimeout(() => toast(milestone ? ['elian', milestone] : before && before.missed ? pick(PRAISE_BACK) : pick(PRAISE)), 600);
   }
 
@@ -180,5 +191,5 @@
     scoldModal(Object.assign(stats(), { missed: 1 + Math.floor(Math.random() * 6) }));
   }
 
-  window.discipline = { stats, activity, day, addDays, demo, toast, PRAISE };
+  window.discipline = { stats, activity, day, addDays, demo, toast, PRAISE, rawSet };
 })();

@@ -38,11 +38,43 @@
     return { hello, name, line: hello + ', ' + name, sub: sub[seed % sub.length], part };
   }
 
+  // ---------- Обязательное каждый день ----------
+  // auto: 'zh' / 'en' — галочка ставится сама, когда в тренажёре выучено нужное число слов.
+  const DEFAULT_MUSTS = [
+    { id: 'wake', t: 'Подъём в 6:00', time: '06:00', dur: 15 },
+    { id: 'en25', t: '25 слов английского', n: 25 },
+    { id: 'zh25', t: '25 слов китайского (тренажёр HSK)', n: 25, auto: 'zh' },
+    { id: 'focus', t: 'Минимум 2 клубнички 🍓 (80 мин учёбы)', n: 2, auto: 'berries' },
+    { id: 'run', t: 'Пробежка', time: '22:30', dur: 30 }
+  ];
+  const musts = () => store.get('musts:list', DEFAULT_MUSTS);
+  const mustsDone = (day) => store.get('musts:done:' + day, []);
+  const wordsToday = (lang, day) => store.get('words:' + lang + ':' + (day || iso()), 0);
+  function mustProgress(m, day) {
+    if (m.auto === 'zh') return wordsToday('zh', day);
+    if (m.auto === 'berries') return berries(day);
+    return null;
+  }
+  function mustIsDone(m, day) {
+    const p = mustProgress(m, day);
+    return mustsDone(day).includes(m.id) || (p != null && p >= (m.n || 1));
+  }
+  function setMust(id, v, day) {
+    const key = 'musts:done:' + (day || iso());
+    const d = new Set(store.get(key, []));
+    v ? d.add(id) : d.delete(id);
+    store.set(key, [...d]);
+  }
+
   // ---------- Задачи дня из всех источников ----------
   const events = () => store.get('events', {});
   function todayItems(date) {
     const day = date || iso();
     const out = [];
+    musts().forEach((m) => {
+      const p = mustProgress(m, day);
+      out.push({ t: m.t + (p != null && p < (m.n || 1) ? ' · ' + p + '/' + m.n : ''), time: m.time, dur: m.dur, done: mustIsDone(m, day), tag: m.time || 'каждый день', must: true, set: (v) => setMust(m.id, v, day) });
+    });
     const dObj = new Date(day + 'T12:00');
     const week = store.weekKey(dObj), wd = (dObj.getDay() + 6) % 7;
     (window.SECTIONS || []).forEach((s) => {
@@ -73,6 +105,28 @@
     if (!e[day].length) delete e[day];
     store.set('events', e);
     document.dispatchEvent(new CustomEvent('events'));
+  }
+
+  // ---------- Поцелуй 💋: всё обязательное и все дела дня выполнены ----------
+  function dayComplete(day) {
+    const items = todayItems(day);
+    return items.length > 0 && items.every((i) => i.done);
+  }
+  function checkKiss() {
+    const day = iso();
+    const k = store.get('kisses', {});
+    const done = dayComplete(day);
+    if (done === !!k[day]) return;
+    if (done) k[day] = true; else delete k[day];
+    D.rawSet('kisses', k);
+    try { localStorage.setItem('dasha-hub-ts', JSON.stringify(Object.assign(store.stamps(), { kisses: Date.now() }))); } catch (e) {}
+    document.dispatchEvent(new CustomEvent('activity'));
+    if (done) {
+      const st = D.stats();
+      const extra = { 3: ' Три дня подряд — Лелуш поцеловал тебе руку.', 7: ' Неделя подряд! Мальчики гордятся тобой.', 14: ' Две недели! Джошуа пишет о тебе стихи.', 30: ' Месяц подряд. Ты и есть сильная личность.' }[st.streak] || '';
+      window.fx && fx.celebrate();
+      D.toast(['elian', 'Всё на сегодня выполнено. Держи поцелуй 💋 (' + st.streak + ' подряд).' + extra], 9000, 'sweet');
+    }
   }
 
   // ---------- Клубничный фокус ----------
@@ -201,9 +255,13 @@
       const pct = items.length ? done / items.length : 0;
       const mins = minutesToday();
       const toPrize = Math.max(0, 300 - mins);
-      const main = items.find((i) => !i.done && !i.time);
-      const timed = items.filter((i) => i.time).sort((a, b) => a.time.localeCompare(b.time));
-      const rest = items.filter((i) => !i.time && i !== main);
+      const mustItems = items.filter((i) => i.must);
+      const other = items.filter((i) => !i.must);
+      const mustsLeft = mustItems.filter((i) => !i.done).length;
+      const main = other.find((i) => !i.done && !i.time);
+      const timed = other.filter((i) => i.time).sort((a, b) => a.time.localeCompare(b.time));
+      const rest = other.filter((i) => !i.time && i !== main);
+      const kissed = !!store.get('kisses', {})[iso()];
       const row = (it, cls) => h('li', { class: (it.done ? 'done ' : '') + (it.hot ? 'hot ' : '') + (cls || '') },
         h('label', {}, h('input', { type: 'checkbox', checked: it.done, onchange: (e) => { it.set(e.target.checked); render(); } }), h('span', {}, it.t)),
         h('span', { class: 'tag' }, it.tag));
@@ -212,7 +270,11 @@
           h('div', { class: 'ring', style: '--p:' + Math.round(pct * 100) }, h('b', {}, done + '/' + items.length)),
           h('div', {}, h('p', { class: 'hello' }, g.line), h('p', { class: 'muted' }, g.sub),
             h('p', { class: 'today-stats' }, '🍓 ' + berries() + ' · ⏱ ' + fmtMin(mins) + ' · ' + (toPrize ? 'до приза ' + fmtMin(toPrize) : 'приз в 23:00 💋')))),
-        items.length && done === items.length ? h('p', { class: 'all-done' }, 'Все квесты на сегодня выполнены 💋 Мальчики довольны.') : null,
+        h('p', { class: kissed ? 'all-done' : 'kiss-hint' }, kissed ? 'Всё выполнено — поцелуй дня твой 💋' : '💋 Поцелуй дня — когда выполнишь всё обязательное и все дела. Осталось: ' + (items.length - done)),
+        h('div', { class: 'musts-box' },
+          h('p', { class: 'mq-kicker' }, '♛ Обязательное каждый день' + (mustsLeft ? ' · осталось ' + mustsLeft : ' ✓')),
+          h('ul', { class: 'quests' }, mustItems.map((i) => row(i, 'must'))),
+          h('button', { class: 'btn-ghost small', onclick: editMusts }, 'Настроить обязательное')),
         main ? h('div', { class: 'main-quest' }, h('p', { class: 'mq-kicker' }, '♛ Главный квест'), h('ul', { class: 'quests' }, row(main))) : null,
         timed.length ? h('div', {}, h('p', { class: 'q-kicker' }, '⏰ По времени'), h('ul', { class: 'quests' }, timed.map((i) => row(i, 'timed')))) : null,
         rest.length ? h('div', {}, h('p', { class: 'q-kicker' }, '✦ Ещё квесты'), h('ul', { class: 'quests' }, rest.map((i) => row(i)))) : null,
@@ -223,6 +285,29 @@
     ['events', 'activity', 'focusrun'].forEach((ev) => document.addEventListener(ev, render));
     return card(w, box);
   };
+
+  function editMusts() {
+    const wrap = h('div', { class: 'scold-wrap' });
+    const list = musts().map((m) => Object.assign({}, m));
+    const body = h('div', { class: 'scold-body' });
+    const close = () => { wrap.classList.add('out'); setTimeout(() => wrap.remove(), 350); };
+    const render = () => body.replaceChildren(
+      h('p', { class: 'scold-kicker' }, 'Обязательное'),
+      h('p', { class: 'muted' }, 'То, что ты делаешь КАЖДЫЙ день, без исключений. Время — по желанию: тогда пункт встанет в расписание.'),
+      h('div', { class: 'musts-edit' }, list.map((m, i) => h('div', { class: 'add-row' },
+        h('input', { type: 'text', value: m.t, oninput: (e) => { m.t = e.target.value; } }),
+        h('input', { type: 'time', value: m.time || '', oninput: (e) => { m.time = e.target.value; } }),
+        h('button', { class: 'x', title: 'Убрать', onclick: () => { list.splice(i, 1); render(); } }, '×')))),
+      h('button', { class: 'btn-ghost', onclick: () => { list.push({ id: 'm' + Date.now(), t: 'Новое правило дня', dur: 30 }); render(); } }, '+ добавить пункт'),
+      h('p', { class: 'muted' }, 'Идеи: 1 правило грамматики · 10 минут говорения по-английски · 20 страниц книги · без телефона после 23:00 · 2 литра воды.'),
+      h('div', { class: 'scold-btns' },
+        h('button', { class: 'btn', onclick: () => { store.set('musts:list', list.filter((m) => m.t.trim())); close(); document.dispatchEvent(new CustomEvent('events')); } }, 'Сохранить'),
+        h('button', { class: 'btn-ghost', onclick: () => { list.splice(0, list.length, ...DEFAULT_MUSTS.map((m) => Object.assign({}, m))); render(); } }, 'Как было'),
+        h('button', { class: 'btn-ghost', onclick: close }, 'Закрыть')));
+    render();
+    wrap.append(h('div', { class: 'scold sync-panel', role: 'dialog' }, body));
+    document.body.append(wrap);
+  }
 
   function quickAdd(day, after) {
     const t = h('input', { type: 'text', placeholder: 'Новый квест на ' + (day === iso() ? 'сегодня' : new Date(day + 'T12:00').toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' })) });
@@ -254,7 +339,7 @@
         h('button', { class: 'x', onclick: () => { dObj.setDate(dObj.getDate() + 1); selectDate(iso(dObj)); } }, '›'),
         isToday ? null : h('button', { class: 'btn-ghost', onclick: () => selectDate(iso()) }, 'сегодня')].filter(Boolean));
       const items = todayItems(day);
-      untimed.replaceChildren(...items.filter((i) => !i.time).map((it) => h('span', { class: 'dv-chip' + (it.done ? ' done' : '') + (it.hot ? ' hot' : ''), onclick: () => { it.set(!it.done); render(); } }, (it.done ? '✓ ' : '') + it.t)));
+      untimed.replaceChildren(...items.filter((i) => !i.time && !i.must).map((it) => h('span', { class: 'dv-chip' + (it.done ? ' done' : '') + (it.hot ? ' hot' : ''), onclick: () => { it.set(!it.done); render(); } }, (it.done ? '✓ ' : '') + it.t)));
       const rows = [];
       for (let hr = FROM; hr < TO; hr++) rows.push(h('div', { class: 'dv-hour', style: 'top:' + (hr - FROM) * HOUR + 'px' }, h('span', {}, String(hr).padStart(2, '0') + ':00')));
       (events()[day] || []).forEach((ev, i) => {
@@ -266,6 +351,14 @@
           h('label', {}, h('input', { type: 'checkbox', checked: ev.done, onchange: (e) => { const all = events(); all[day][i].done = e.target.checked; store.set('events', all); render(); } }),
             h('b', {}, ev.time), ' ', ev.t),
           h('button', { class: 'x', title: 'Удалить', onclick: () => removeEvent(day, i) }, '×')));
+      });
+      musts().forEach((m) => {
+        if (!m.time) return;
+        const [hh, mm] = m.time.split(':').map(Number);
+        const top = Math.max(0, (hh - FROM) * HOUR + (mm / 60) * HOUR);
+        const done = mustIsDone(m, day);
+        rows.push(h('div', { class: 'dv-event must' + (done ? ' done' : ''), style: `top:${top}px;height:${Math.max(24, ((m.dur || 30) / 60) * HOUR - 3)}px` },
+          h('label', {}, h('input', { type: 'checkbox', checked: done, onchange: (e) => { setMust(m.id, e.target.checked, day); render(); } }), h('b', {}, m.time), ' ♛ ' + m.t)));
       });
       if (isToday) {
         const now = new Date();
@@ -291,7 +384,7 @@
     const grid = h('div', { class: 'cal' });
     const info = h('div', { class: 'cal-stats' });
     const render = () => {
-      const a = D.activity(), s = D.stats(), today = iso(), ev = events();
+      const a = D.activity(), s = D.stats(), today = iso(), ev = events(), kis = store.get('kisses', {});
       const y = view.getFullYear(), m = view.getMonth();
       head.replaceChildren(
         h('button', { class: 'x', onclick: () => { view.setMonth(m - 1); render(); } }, '‹'),
@@ -306,7 +399,9 @@
         const day = iso(new Date(y, m, d, 12));
         const n = a[day] || 0, evs = (ev[day] || []).length;
         let cls = 'cal-day', mark = '';
-        if (n) { cls += ' on lvl' + (n >= 10 ? 3 : n >= 4 ? 2 : 1); mark = '♥'; act++; }
+        const kissed = !!kis[day];
+        if (kissed) { cls += ' on lvl3 kissed'; mark = '💋'; act++; }
+        else if (n) { cls += ' on lvl1'; mark = '♥'; act++; }
         else if (day < today && day >= s.started) { cls += ' missed'; mark = '🥀'; miss++; }
         if (day === today) cls += ' today';
         if (day === sel.date) cls += ' sel';
@@ -317,7 +412,7 @@
       info.replaceChildren(
         h('span', {}, h('b', {}, '💋 ' + s.streak), ' подряд'),
         h('span', {}, h('b', {}, '★ ' + s.best), ' рекорд'),
-        h('span', {}, h('b', {}, '♥ ' + act), ' в этом месяце'),
+        h('span', {}, h('b', {}, '💋 ' + Object.keys(kis).filter((k2) => k2.startsWith(view.toLocaleDateString('sv-SE').slice(0, 7))).length), ' поцелуев за месяц'),
         h('span', {}, h('b', {}, '🥀 ' + miss), ' пропусков'));
     };
     render();
@@ -326,7 +421,7 @@
       h('div', { class: 'idea-btns' },
         h('button', { class: 'btn-ghost', onclick: () => D.demo() }, 'Показать, как ругают'),
         h('button', { class: 'btn-ghost', onclick: () => D.toast(pick(D.PRAISE), 0, 'sweet') }, 'Показать, как хвалят')),
-      h('p', { class: 'muted' }, 'Нажми на любой день, чтобы посмотреть или добавить событие. Сердечко — день с учёбой, роза — пропуск.'));
+      h('p', { class: 'muted' }, 'Нажми на любой день, чтобы посмотреть или добавить событие. 💋 — выполнено всё, ♥ — что-то сделала, 🥀 — пропуск.'));
   };
 
   // Клубничный таймер.
@@ -530,10 +625,13 @@
     h('p', { class: 'today-stats' }, 'Побед: ' + store.get('urge:wins', 0) + ' · честный отдых сегодня: ' + Math.max(0, funLeft()) + ' мин'));
 
   window.WIDGETS_EXTRA = X;
-  window.day = { greeting, todayItems, whatNow, urge, grandPrize, startFocus, addEvent, fmtMin, minutesToday, berries };
+  window.day = { greeting, todayItems, editMusts, checkKiss, whatNow, urge, grandPrize, startFocus, addEvent, fmtMin, minutesToday, berries };
 
   // ---------- При загрузке любой страницы ----------
   function onLoad() {
+    let kt = null;
+    document.addEventListener('store-change', (e) => { if (e.detail === 'kisses') return; clearTimeout(kt); kt = setTimeout(checkKiss, 300); });
+    setTimeout(checkKiss, 1200);
     tick();
     setInterval(tick, 1000);
     document.addEventListener('focusrun', tick);

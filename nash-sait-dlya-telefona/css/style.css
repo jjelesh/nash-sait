@@ -1235,3 +1235,35 @@ input[type=checkbox]:checked {
   .petal-list { padding-bottom: 110px; }
   .home-greet { top: 10px; right: 16px; left: 16px; width: auto; }
 }
+
+/* ---------- Облегчение: меньше перерисовок, без тормозов ---------- */
+.card h3 { animation: none; }
+.page-head h1 { animation: title-float 6s ease-in-out infinite; text-shadow: 0 0 14px rgba(232, 180, 120, .35); }
+@keyframes corner-glow { 50% { opacity: 1; } }
+.pill, .petal-nav a { backdrop-filter: none; -webkit-backdrop-filter: none; background: linear-gradient(180deg, rgba(255,255,255,.96), rgba(255,236,243,.92)); }
+.home-menu-btn { animation: none; }
+.bar i { animation-duration: 2.5s; }
+.card::before { display: none; }
+.card { transition: none; }
+.flash, .flash-inner, .face { contain: layout paint; }
+.dv-scroll { contain: strict; }
+
+/* Обязательное и поцелуй дня */
+.musts-box { background: linear-gradient(135deg, #fff, #fde4ec); border: 1px solid var(--gold); border-radius: 14px; padding: 8px 12px; margin: 8px 0; }
+.musts-box .quests li.done { opacity: .7; }
+.musts-box .btn-ghost.small { margin-top: 6px; font-size: 14px; padding: 4px 10px; }
+.kiss-hint { font-style: italic; font-size: 15px; color: var(--muted); border: 1px dashed var(--gold); border-radius: 12px; padding: 6px 10px; margin: 6px 0; }
+.dv-event.must { background: linear-gradient(135deg, #fff3d6, #f7d79f); border-left-color: var(--gold); }
+.cal-day.kissed { background: linear-gradient(135deg, #f07aa0, #a72a57); }
+.musts-edit .add-row input[type=time] { flex: 0 0 auto; width: 110px; }
+
+/* Приветствие по центру сверху, чтобы не закрывать головы мальчиков */
+.home-greet { top: 10px; right: auto; left: 50%; transform: translateX(-50%); width: auto; max-width: min(420px, 34vw); padding: 6px 18px 4px; text-align: center; animation: greet-in-c .8s cubic-bezier(.2, .8, .2, 1) both .3s; }
+@keyframes greet-in-c { from { opacity: 0; transform: translate(-50%, -14px); } }
+.hg-hello { font-size: 26px; white-space: nowrap; }
+.hg-stats { font-size: 14px; }
+.hg-more ul { text-align: left; }
+@media (max-width: 760px), (max-aspect-ratio: 1/1) {
+  .home-greet { left: 16px; right: 16px; transform: none; max-width: none; animation-name: greet-in; }
+  .hg-hello { white-space: normal; }
+}
