@@ -1322,3 +1322,25 @@ input[type=checkbox]:checked {
 .options button.han-opt { font-family: 'Songti SC', 'STSong', 'PingFang SC', serif; font-size: 20px; }
 .en-words .face .han, .en-words .quiz .q.han, .en-words .vtable .h { font-family: var(--serif); }
 .en-words .face .han { font-size: 52px; }
+
+/* ---------- Карточки: переворот без 3D (в Safari 3D-переворот ломался) ---------- */
+.flash, .flash-inner, .face { contain: none !important; }
+.flash-inner { transform: none !important; transform-style: flat !important; transition: none !important; will-change: auto; }
+.face, .face.back { transform: none !important; backface-visibility: visible !important; -webkit-backface-visibility: visible !important; transition: opacity .18s ease; }
+.face.back { opacity: 0; pointer-events: none; }
+.flash.flipped .face.front, .flash.flipped .face:not(.back) { opacity: 0; pointer-events: none; }
+.flash.flipped .face.back { opacity: 1; pointer-events: auto; }
+.flash.flipping .flash-inner { animation: card-flip .28s ease; }
+@keyframes card-flip { 50% { transform: scaleX(.05); } }
+.flash { -webkit-tap-highlight-color: transparent; user-select: none; -webkit-user-select: none; }
+.flash:hover { transform: none; }
+
+/* Группы слов свёрнуты, чтобы карточка была сразу на экране */
+.group-fold { margin-bottom: 8px; text-align: center; }
+.group-fold summary { cursor: pointer; font-style: italic; color: var(--rose-deep); list-style: none; }
+.group-fold summary::-webkit-details-marker { display: none; }
+
+/* Наблюдатель не закрывает кнопки тренажёра */
+body:has(.flash) .watcher .watcher-bubble, body:has(.practice) .watcher .watcher-bubble { display: none; }
+body:has(.flash) .watcher, body:has(.practice) .watcher { padding: 4px; }
+@media (max-width: 760px) { .watcher .watcher-bubble { display: none; } .watcher { padding: 4px; } }

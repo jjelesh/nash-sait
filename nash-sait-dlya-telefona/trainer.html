@@ -13,7 +13,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400;1,600;1,700&family=Great+Vibes&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/style.css?v=202611060043">
+  <link rel="stylesheet" href="css/style.css?v=202611060104">
 </head>
 <body class="spread-page">
   <header class="topnav">
@@ -28,7 +28,7 @@
     <div class="page left">
       <div class="page-head"><h1 id="title"></h1><p class="sub" id="sub"></p></div>
       <div class="trainer-tabs" id="tabs"></div>
-      <div class="group-pick" id="groups"></div>
+      <details class="group-fold"><summary>Выбрать группы слов ▾</summary><div class="group-pick" id="groups"></div></details>
       <p class="stats" id="stats"></p>
       <div id="mode"></div>
     </div>
@@ -49,17 +49,17 @@
   <footer class="foot">
   </footer>
 
-  <script src="js/store.js?v=202611060043"></script>
-  <script src="js/sync.js?v=202611060043"></script>
-  <script src="js/discipline.js?v=202611060043"></script>
-  <script src="js/sections.js?v=202611060043"></script>
-  <script src="js/widgets.js?v=202611060043"></script>
-  <script src="js/day.js?v=202611060043"></script>
-  <script src="js/verbs-data.js?v=202611060043"></script>
-  <script src="js/en-words.js?v=202611060043"></script>
-  <script src="js/hsk-data.js?v=202611060043"></script>
-  <script src="js/grammar-data.js?v=202611060043"></script>
-  <script src="js/grammar-ui.js?v=202611060043"></script>
+  <script src="js/store.js?v=202611060104"></script>
+  <script src="js/sync.js?v=202611060104"></script>
+  <script src="js/discipline.js?v=202611060104"></script>
+  <script src="js/sections.js?v=202611060104"></script>
+  <script src="js/widgets.js?v=202611060104"></script>
+  <script src="js/day.js?v=202611060104"></script>
+  <script src="js/verbs-data.js?v=202611060104"></script>
+  <script src="js/en-words.js?v=202611060104"></script>
+  <script src="js/hsk-data.js?v=202611060104"></script>
+  <script src="js/grammar-data.js?v=202611060104"></script>
+  <script src="js/grammar-ui.js?v=202611060104"></script>
   <script>
     const t = new URLSearchParams(location.search).get('t') || 'verbs';
     const isVerbs = t === 'verbs';
@@ -153,7 +153,7 @@
       const backSide = isVerbs
         ? [h('div', { class: 'big' }, w.b), h('div', { class: 'mid' }, w.c), h('div', { class: 'small' }, w.group)]
         : [h('div', { class: 'mid' }, w.py), h('div', { class: 'big', style: 'font-size:28px' }, w.ru)];
-      const flash = h('div', { class: 'flash', onclick: () => flash.classList.toggle('flipped') },
+      const flash = h('div', { class: 'flash', onclick: () => { flash.classList.add('flipping'); setTimeout(() => flash.classList.toggle('flipped'), 120); setTimeout(() => flash.classList.remove('flipping'), 300); } },
         h('div', { class: 'flash-inner' }, h('div', { class: 'face' }, ...front, h('div', { class: 'small' }, 'нажми, чтобы перевернуть')), h('div', { class: 'face back' }, ...backSide)));
       const next = (know) => {
         queue.shift();
@@ -279,6 +279,6 @@
     renderTabs();
     start();
   </script>
-  <script src="js/effects.js?v=202611060043"></script>
+  <script src="js/effects.js?v=202611060104"></script>
 </body>
 </html>
