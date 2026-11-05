@@ -517,7 +517,7 @@ input, select, textarea { font: inherit; color: var(--ink); }
 .spread-page .topnav, .spread-page .book, .spread-page .foot { position: relative; z-index: 2; }
 .fx-off .fx-canvas { display: none; }
 
-body { animation: fx-page-in .6s ease both; }
+body { animation: fx-page-in .25s ease both; }
 @keyframes fx-page-in { from { opacity: 0; } }
 body.fx-leaving { animation: none; opacity: 0; transition: opacity .35s ease; }
 
@@ -1267,3 +1267,58 @@ input[type=checkbox]:checked {
   .home-greet { left: 16px; right: 16px; transform: none; max-width: none; animation-name: greet-in; }
   .hg-hello { white-space: normal; }
 }
+
+/* ---------- Без тормозов: убраны бесконечные анимации, которые перерисовывают экран ---------- */
+.home::after { display: none !important; }
+.petal-hit .glow { animation: none !important; }
+.petal-hit .label-group { animation: none; }
+.petal-hit:hover .label-group { animation: label-pop .5s cubic-bezier(.3, 1.6, .5, 1) forwards; }
+.btn::before { animation: none; opacity: .6; }
+.card h3::before { animation: none; }
+.page::after { animation: none; }
+.sos-pill, .btn.sos { animation: none; }
+.bar i { animation: none; }
+.petal-list a { animation: none; }
+.clock { animation: none; }
+.face { animation: none; }
+.home-greet { backdrop-filter: none; -webkit-backdrop-filter: none; background: linear-gradient(160deg, rgba(255,255,255,.94), rgba(255,232,240,.92)); }
+.home-bar.home-menu { backdrop-filter: none; -webkit-backdrop-filter: none; }
+.scold-wrap { backdrop-filter: none; -webkit-backdrop-filter: none; background: rgba(74, 20, 36, .55); }
+
+/* ---------- Наблюдатель ---------- */
+.watcher {
+  position: fixed; left: 14px; bottom: 14px; z-index: 75;
+  display: flex; align-items: center; gap: 8px;
+  max-width: min(330px, calc(100vw - 28px));
+  padding: 5px 14px 5px 5px;
+  border-radius: 999px;
+  border: 1px solid rgba(195, 154, 85, .8);
+  background: linear-gradient(160deg, #fff, #fde4ec);
+  box-shadow: 0 8px 22px rgba(155, 47, 85, .25);
+  cursor: pointer; text-align: left; font: inherit; color: var(--wine);
+  transition: transform .25s cubic-bezier(.3, 1.6, .5, 1);
+}
+.watcher:hover { transform: translateY(-2px); }
+.watcher .portrait { width: 46px; height: 46px; }
+.watcher-bubble { font-size: 14px; font-style: italic; line-height: 1.2; }
+.watcher.mood-angry { border-color: #e0245e; background: linear-gradient(160deg, #fff, #fbd0dc); }
+.watcher.mood-angry .portrait { box-shadow: 0 0 0 3px rgba(224, 36, 94, .35); }
+.home .watcher { bottom: 70px; }
+.hero-toast { bottom: 84px; }
+.focus-float { bottom: 84px; }
+.watch-panel { width: min(600px, 100%); }
+.watch-panel .quests { margin-bottom: 6px; }
+.add-today { background: rgba(255, 255, 255, .7); border: 1px dashed var(--rose); border-radius: 14px; padding: 6px 10px 10px; margin: 8px 0; }
+.add-today .q-kicker, .watch-panel .q-kicker { margin-top: 2px; }
+.hg-add { margin-top: 4px; border: 1px solid rgba(195, 154, 85, .7); border-radius: 999px; background: linear-gradient(160deg, #f07aa0, #c2446e); color: #fff; font-weight: 700; font-size: 14px; padding: 3px 12px; cursor: pointer; }
+@media (max-width: 760px) {
+  .watcher-bubble { font-size: 13px; }
+  .watcher .portrait { width: 40px; height: 40px; }
+}
+
+/* Практика */
+.practice .q-text { font-size: 22px; font-weight: 600; color: var(--wine); margin: 8px 0; }
+.practice .q-text.han { font-family: 'Songti SC', 'STSong', 'PingFang SC', serif; font-size: 30px; }
+.options button.han-opt { font-family: 'Songti SC', 'STSong', 'PingFang SC', serif; font-size: 20px; }
+.en-words .face .han, .en-words .quiz .q.han, .en-words .vtable .h { font-family: var(--serif); }
+.en-words .face .han { font-size: 52px; }

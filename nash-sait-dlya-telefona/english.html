@@ -13,7 +13,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400;1,600;1,700&family=Great+Vibes&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/style.css?v=202611032254">
+  <link rel="stylesheet" href="css/style.css?v=202611060043">
 </head>
 <body class="spread-page">
   <header class="topnav">
@@ -38,17 +38,17 @@
   </main>
 
   <footer class="foot">
-    <button class="pill" data-export>Сохранить копию</button>
-    <button class="pill" data-import>Загрузить копию</button>
   </footer>
 
-  <script src="js/store.js?v=202611032254"></script>
-  <script src="js/sync.js?v=202611032254"></script>
-  <script src="js/discipline.js?v=202611032254"></script>
-  <script src="js/sections.js?v=202611032254"></script>
-  <script src="js/widgets.js?v=202611032254"></script>
-  <script src="js/day.js?v=202611032254"></script>
-  <script src="js/english-data.js?v=202611032254"></script>
+  <script src="js/store.js?v=202611060043"></script>
+  <script src="js/sync.js?v=202611060043"></script>
+  <script src="js/discipline.js?v=202611060043"></script>
+  <script src="js/sections.js?v=202611060043"></script>
+  <script src="js/widgets.js?v=202611060043"></script>
+  <script src="js/day.js?v=202611060043"></script>
+  <script src="js/en-practice.js?v=202611060043"></script>
+  <script src="js/practice.js?v=202611060043"></script>
+  <script src="js/english-data.js?v=202611060043"></script>
   <script>
     const STEP = ['15 новых слов (Quizlet)', '1 тема грамматики + упражнения в Мерфи', '1 текст своего уровня', '1 аудио или видео', '2 минуты говорения вслух', '1 абзац текста или эссе'];
     const today = new Date().toLocaleDateString('sv-SE');
@@ -112,7 +112,17 @@
         }, 1000);
       };
 
+      const pbox = h('div');
       document.getElementById('right').replaceChildren(
+        card('Практика грамматики ' + L.id, 'practice',
+          h('p', { class: 'muted' }, 'Серия из 10 вопросов по темам уровня ' + L.id + '. Ошибки разберём в конце.'),
+          pbox),
+        card('Слова: тренажёры', 'wordtrain',
+          h('div', { class: 'trainers' },
+            h('a', { class: 'trainer-btn', href: 'trainer.html?t=en-a2' }, h('b', {}, 'Слова A2'), h('span', {}, '161 частых слов: карточки и тесты')),
+            h('a', { class: 'trainer-btn', href: 'trainer.html?t=en-b1' }, h('b', {}, 'Слова B1'), h('span', {}, '153 слов для учёбы и эссе')),
+            h('a', { class: 'trainer-btn', href: 'trainer.html?t=verbs' }, h('b', {}, 'Неправильные глаголы'), h('span', {}, 'твой листок'))),
+          h('p', { class: 'today-stats' }, 'Сегодня выучено: ' + store.get('words:en:' + today, 0) + ' / 25 слов')),
         card('Грамматика ' + L.id, 'grammar',
           h('p', { class: 'muted' }, 'Нажми на тему, чтобы раскрыть. Отметь «знаю», когда сделаешь упражнения в Мерфи.'),
           h('div', {}, L.grammar.map((g) => {
@@ -149,8 +159,22 @@
           h('details', {}, h('summary', {}, 'Все темы уровня'), h('ul', { class: 'frames' }, L.speak.map((s) => h('li', {}, s))))));
     }
     render();
+    function startPractice() {
+      const box = document.querySelector('#practice > div:last-child');
+      if (!box) return;
+      const order = ['A2', 'B1', 'B2', 'C1'];
+      const pool = EN_PRACTICE.filter((x) => x[0] === lvl);
+      const src = pool.length >= 5 ? pool : EN_PRACTICE.filter((x) => order.indexOf(x[0]) <= order.indexOf(lvl));
+      practiceQuiz(box, () => {
+        const x = src[Math.floor(Math.random() * src.length)];
+        return { q: x[2], sub: x[1], options: x[3], answer: x[4], explain: x[5] };
+      }, 'en', 'English ' + lvl);
+    }
+    const _render = render;
+    render = function () { _render(); startPractice(); };
+    startPractice();
     if (location.hash) setTimeout(() => document.querySelector(location.hash)?.scrollIntoView({ behavior: 'smooth' }), 300);
   </script>
-  <script src="js/effects.js?v=202611032254"></script>
+  <script src="js/effects.js?v=202611060043"></script>
 </body>
 </html>

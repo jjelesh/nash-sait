@@ -13,7 +13,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400;1,600;1,700&family=Great+Vibes&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/style.css?v=202611032254">
+  <link rel="stylesheet" href="css/style.css?v=202611060043">
 </head>
 <body class="spread-page">
   <header class="topnav">
@@ -34,6 +34,7 @@
       <div class="page-head"><h1>语法</h1><p class="sub">грамматика HSK 1–5</p></div>
       <p class="stats" id="stats"></p>
       <div class="trainer-tabs" id="levels"></div>
+      <section class="card" id="practice"><h3>Практика</h3><p class="muted">10 вопросов: выбери правильное китайское предложение или узнай правило. Уровни — по кнопкам выше.</p><div id="pbox"></div></section>
       <section class="card"><h3>Правило дня</h3><div id="day"></div></section>
     </div>
     <div class="page right">
@@ -46,18 +47,17 @@
   </main>
 
   <footer class="foot">
-    <button class="pill" data-export>Сохранить копию</button>
-    <button class="pill" data-import>Загрузить копию</button>
   </footer>
 
-  <script src="js/store.js?v=202611032254"></script>
-  <script src="js/sync.js?v=202611032254"></script>
-  <script src="js/discipline.js?v=202611032254"></script>
-  <script src="js/sections.js?v=202611032254"></script>
-  <script src="js/widgets.js?v=202611032254"></script>
-  <script src="js/day.js?v=202611032254"></script>
-  <script src="js/grammar-data.js?v=202611032254"></script>
-  <script src="js/grammar-ui.js?v=202611032254"></script>
+  <script src="js/store.js?v=202611060043"></script>
+  <script src="js/sync.js?v=202611060043"></script>
+  <script src="js/discipline.js?v=202611060043"></script>
+  <script src="js/sections.js?v=202611060043"></script>
+  <script src="js/widgets.js?v=202611060043"></script>
+  <script src="js/day.js?v=202611060043"></script>
+  <script src="js/grammar-data.js?v=202611060043"></script>
+  <script src="js/practice.js?v=202611060043"></script>
+  <script src="js/grammar-ui.js?v=202611060043"></script>
   <script>
     const LEVELS = [1, 2, 3, 4, 5];
     let level = store.get('grammar:level', 0); // 0 = все уровни
@@ -90,8 +90,36 @@
       document.getElementById('list').replaceChildren(...(rows.length ? rows : [h('p', { class: 'muted' }, 'Ничего не нашлось.')]));
     }
     search.addEventListener('input', renderList);
+
+    // Вопросы из примеров правил: перевод → предложение, предложение → правило, пропущенное слово.
+    function zhQuestion() {
+      const pool = GRAMMAR.filter((r) => !level || r[0] === level);
+      const r = pool[Math.floor(Math.random() * pool.length)];
+      const ex = r[4][Math.floor(Math.random() * r[4].length)];
+      const others = practiceShuffle(GRAMMAR.filter((x) => x !== r && Math.abs(x[0] - r[0]) <= 1)).slice(0, 3);
+      const kind = Math.floor(Math.random() * 3);
+      if (kind === 0) {
+        const opts = practiceShuffle([ex[0], ...others.map((o) => o[4][0][0])]);
+        return { q: ex[2], sub: 'как сказать по-китайски?', options: opts, answer: opts.indexOf(ex[0]), explain: ex[0] + ' · ' + ex[1] + ' — правило «' + r[1] + '».', optClass: 'han-opt' };
+      }
+      if (kind === 1) {
+        const opts = practiceShuffle([r[1], ...others.map((o) => o[1])]);
+        return { q: ex[0], qClass: 'han', sub: 'какое это правило?', options: opts, answer: opts.indexOf(r[1]), explain: ex[1] + ' — ' + ex[2] + '. Схема: ' + r[2] };
+      }
+      // Пропуск: убираем ключевой иероглиф правила из примера.
+      const key = (r[1].match(/[\u4e00-\u9fff]+/) || [''])[0];
+      const piece = key && ex[0].includes(key) ? key : (r[2].match(/[\u4e00-\u9fff]+/) || [''])[0];
+      if (!piece || !ex[0].includes(piece)) return zhQuestion();
+      const wrong = practiceShuffle(GRAMMAR.map((x) => (x[1].match(/[\u4e00-\u9fff]+/) || [''])[0]).filter((k) => k && k !== piece)).filter((k, i, a) => a.indexOf(k) === i).slice(0, 3);
+      const opts = practiceShuffle([piece, ...wrong]);
+      return { q: ex[0].replace(piece, ' ___ '), qClass: 'han', sub: 'вставь пропуск · ' + ex[2], options: opts, answer: opts.indexOf(piece), explain: ex[0] + ' — правило «' + r[1] + '».', optClass: 'han-opt' };
+    }
+    const startPractice = () => practiceQuiz(document.getElementById('pbox'), zhQuestion, 'zh', level ? 'HSK ' + level : 'HSK 1–5');
+    const _renderG = render;
+    render = function () { _renderG(); startPractice(); };
+    startPractice();
     render();
   </script>
-  <script src="js/effects.js?v=202611032254"></script>
+  <script src="js/effects.js?v=202611060043"></script>
 </body>
 </html>

@@ -42,16 +42,17 @@
   // auto: 'zh' / 'en' — галочка ставится сама, когда в тренажёре выучено нужное число слов.
   const DEFAULT_MUSTS = [
     { id: 'wake', t: 'Подъём в 6:00', time: '06:00', dur: 15 },
-    { id: 'en25', t: '25 слов английского', n: 25 },
+    { id: 'en25', t: '25 слов английского (тренажёр слов)', n: 25, auto: 'en' },
     { id: 'zh25', t: '25 слов китайского (тренажёр HSK)', n: 25, auto: 'zh' },
     { id: 'focus', t: 'Минимум 2 клубнички 🍓 (80 мин учёбы)', n: 2, auto: 'berries' },
     { id: 'run', t: 'Пробежка', time: '22:30', dur: 30 }
   ];
-  const musts = () => store.get('musts:list', DEFAULT_MUSTS);
+  const musts = () => store.get('musts:list', DEFAULT_MUSTS).map((m) => (m.id === 'en25' && !m.auto ? Object.assign({}, m, { auto: 'en', n: 25 }) : m));
   const mustsDone = (day) => store.get('musts:done:' + day, []);
   const wordsToday = (lang, day) => store.get('words:' + lang + ':' + (day || iso()), 0);
   function mustProgress(m, day) {
     if (m.auto === 'zh') return wordsToday('zh', day);
+    if (m.auto === 'en') return wordsToday('en', day);
     if (m.auto === 'berries') return berries(day);
     return null;
   }
@@ -270,6 +271,7 @@
           h('div', { class: 'ring', style: '--p:' + Math.round(pct * 100) }, h('b', {}, done + '/' + items.length)),
           h('div', {}, h('p', { class: 'hello' }, g.line), h('p', { class: 'muted' }, g.sub),
             h('p', { class: 'today-stats' }, '🍓 ' + berries() + ' · ⏱ ' + fmtMin(mins) + ' · ' + (toPrize ? 'до приза ' + fmtMin(toPrize) : 'приз в 23:00 💋')))),
+        h('div', { class: 'add-today' }, h('p', { class: 'q-kicker' }, '＋ Добавить задачу на сегодня'), quickAdd(iso(), render)),
         h('p', { class: kissed ? 'all-done' : 'kiss-hint' }, kissed ? 'Всё выполнено — поцелуй дня твой 💋' : '💋 Поцелуй дня — когда выполнишь всё обязательное и все дела. Осталось: ' + (items.length - done)),
         h('div', { class: 'musts-box' },
           h('p', { class: 'mq-kicker' }, '♛ Обязательное каждый день' + (mustsLeft ? ' · осталось ' + mustsLeft : ' ✓')),
@@ -278,8 +280,7 @@
         main ? h('div', { class: 'main-quest' }, h('p', { class: 'mq-kicker' }, '♛ Главный квест'), h('ul', { class: 'quests' }, row(main))) : null,
         timed.length ? h('div', {}, h('p', { class: 'q-kicker' }, '⏰ По времени'), h('ul', { class: 'quests' }, timed.map((i) => row(i, 'timed')))) : null,
         rest.length ? h('div', {}, h('p', { class: 'q-kicker' }, '✦ Ещё квесты'), h('ul', { class: 'quests' }, rest.map((i) => row(i)))) : null,
-        !items.length ? h('p', { class: 'muted' }, 'На сегодня пока ничего. Добавь первый квест ниже или нажми «Что мне делать?».') : null,
-        quickAdd(iso(), render)].filter(Boolean));
+        !other.length ? h('p', { class: 'muted' }, 'Других дел пока нет. Впиши задачу в поле сверху и нажми +, или «Что мне делать?».') : null].filter(Boolean));
     };
     render();
     ['events', 'activity', 'focusrun'].forEach((ev) => document.addEventListener(ev, render));
@@ -418,9 +419,6 @@
     render();
     ['activity', 'events', 'day-select'].forEach((e) => document.addEventListener(e, render));
     return card(w, info, head, grid,
-      h('div', { class: 'idea-btns' },
-        h('button', { class: 'btn-ghost', onclick: () => D.demo() }, 'Показать, как ругают'),
-        h('button', { class: 'btn-ghost', onclick: () => D.toast(pick(D.PRAISE), 0, 'sweet') }, 'Показать, как хвалят')),
       h('p', { class: 'muted' }, 'Нажми на любой день, чтобы посмотреть или добавить событие. 💋 — выполнено всё, ♥ — что-то сделала, 🥀 — пропуск.'));
   };
 
@@ -443,7 +441,7 @@
         h('p', { class: 'today-stats' }, 'Сегодня: ' + fmtMin(mins) + ' · ' + berries() + ' 🍓 (одна клубничка = 40 минут учёбы)'),
         h('div', { class: 'tiers' }, TIERS.map((t) => h('span', { class: mins >= t.min ? 'on' : '' }, (mins >= t.min ? '✓ ' : '') + fmtMin(t.min)))),
         h('p', { class: 'muted' }, 'От 5 часов в день — в 23:00 большой приз от мальчиков на весь экран.'),
-        h('button', { class: 'btn-ghost', onclick: () => grandPrize(true) }, 'Посмотреть, какой будет приз')].filter(Boolean));
+        null].filter(Boolean));
       tick();
     };
     render();
@@ -624,14 +622,157 @@
     h('button', { class: 'btn big sos', onclick: urge }, 'SOS: хочу залипнуть'),
     h('p', { class: 'today-stats' }, 'Побед: ' + store.get('urge:wins', 0) + ' · честный отдых сегодня: ' + Math.max(0, funLeft()) + ' мин'));
 
+  // =========================================================
+  // Наблюдение: герои следят за днём и ругают за невыполненные дни
+  // =========================================================
+  const addDays = (day, n) => { const d = new Date(day + 'T12:00'); d.setDate(d.getDate() + n); return iso(d); };
+  // Сколько дней подряд до сегодня закончились без поцелуя (не всё сделано).
+  function failedDays() {
+    const k = store.get('kisses', {}), started = store.get('started', iso());
+    let n = 0, d = addDays(iso(), -1);
+    while (d >= started && !k[d] && n < 60) { n++; d = addDays(d, -1); }
+    return n;
+  }
+
+  function scoldUnfinished(n) {
+    const yest = addDays(iso(), -1);
+    const left = todayItems(yest).filter((i) => !i.done);
+    const L = n >= 4 ? 'severe' : n >= 2 ? 'medium' : 'mild';
+    const lines = {
+      mild: [['kassian', 'Вчера ты не доделала день. Я всё видел: ' + left.length + ' ' + plural(left.length, 'пункт остался', 'пункта остались', 'пунктов остались') + '.'],
+        ['elian', 'Без поцелуя вчера, Дарьюшка. Сегодня исправим?']],
+      medium: [['kassian', n + ' ' + plural(n, 'день', 'дня', 'дней') + ' подряд без выполненного плана. Это уже не случайность, это привычка.'],
+        ['elian', 'Я ждал вчера вечером. И позавчера. Поцелуи сами себя не заработают.']],
+      severe: [['kassian', n + ' ' + plural(n, 'день', 'дней', 'дней') + ' без выполненного дня. «Уехать учиться за границу» — пока только красивая фраза. Докажи, что нет.'],
+        ['tigra', 'Мяфка смотрит на тебя долгим взглядом и уходит спать на учебник. Демонстративно.']]
+    }[L];
+    const pens = D.PENALTIES.slice().sort(() => Math.random() - 0.5).slice(0, Math.min(3, n));
+    const wrap = h('div', { class: 'scold-wrap' });
+    const close = () => { wrap.classList.add('out'); setTimeout(() => wrap.remove(), 350); };
+    const body = h('div', { class: 'scold-body' },
+      h('p', { class: 'scold-kicker' }, n === 1 ? 'Вчера — без поцелуя' : n + ' ' + plural(n, 'день', 'дня', 'дней') + ' без поцелуя'),
+      ...lines.map(([w, t]) => { const row = h('div', { class: 'scold-line' }); row.innerHTML = D.portrait(w, 'angry'); row.append(h('div', {}, h('b', {}, D.WHO[w].name), h('p', {}, t))); return row; }),
+      left.length ? h('div', { class: 'scold-pen' }, h('b', {}, 'Не сделано вчера:'), h('ul', {}, left.slice(0, 8).map((i) => h('li', {}, '✗ ' + i.t.replace(/ · \d+\/\d+$/, ''))))) : null,
+      h('div', { class: 'scold-pen' }, h('b', {}, 'Наказание на сегодня:'), h('ul', {}, pens.map((p) => h('li', {}, '⚔ ' + p)))),
+      h('div', { class: 'scold-btns' },
+        h('button', { class: 'btn', onclick: () => {
+          const today = iso();
+          left.filter((i) => !i.must).forEach((i) => addEvent(today, i.t, i.time || '', i.dur || 60));
+          pens.forEach((p) => addEvent(today, '⚔ ' + p, '', 40));
+          close();
+          setTimeout(() => D.toast(['kassian', 'Хорошо. Хвосты и наказание — в плане на сегодня. Вечером проверю.'], 8000, 'smug'), 400);
+        } }, 'Перенести хвосты и наказание на сегодня'),
+        h('button', { class: 'btn-ghost', onclick: () => {
+          store.set('scold:ignored:' + iso(), true);
+          close();
+          setTimeout(() => D.toast(['elian', 'Игнорировать меня — плохая идея. Я напомню снова через час.'], 8000, 'angry'), 400);
+        } }, 'Потом')));
+    const fig = h('div', {});
+    fig.innerHTML = D.figure(lines[0][0]);
+    wrap.append(h('div', { class: 'scold', role: 'dialog' }, fig.firstChild || '', body));
+    document.body.append(wrap);
+  }
+
+  // Плавающий наблюдатель на каждой странице.
+  const NAG = [
+    { h: 10, who: 'elian', text: (n) => 'Доброе утро. Обязательного осталось ' + n + '. Начни с самого трудного.' },
+    { h: 14, who: 'kassian', text: (n) => 'Уже середина дня, а обязательного ещё ' + n + '. Я считаю.' },
+    { h: 18, who: 'kassian', text: (n) => 'Вечер близко. ' + n + ' ' + plural(n, 'пункт', 'пункта', 'пунктов') + ' не сделано. Поцелуй уходит.' },
+    { h: 21, who: 'elian', text: (n) => 'Последний шанс на поцелуй сегодня: осталось ' + n + '. Давай, умница.' },
+    { h: 23, who: 'kassian', text: (n) => 'День почти закрыт, а ' + n + ' ' + plural(n, 'пункт висит', 'пункта висят', 'пунктов висят') + '. Завтра поговорим.' }
+  ];
+  let watcherEl = null;
+  function watcherState() {
+    const items = todayItems();
+    const musts_ = items.filter((i) => i.must), left = items.filter((i) => !i.done);
+    const mLeft = musts_.filter((i) => !i.done).length;
+    const hr = new Date().getHours();
+    const kissed = !!store.get('kisses', {})[iso()];
+    let who = 'elian', mood = 'sweet', text;
+    if (kissed) text = 'Всё сделано. Поцелуй твой 💋';
+    else if (!items.length) { who = 'kassian'; mood = 'smug'; text = 'План на сегодня пуст. Добавь задачи.'; }
+    else if (hr >= 18 && mLeft) { who = 'kassian'; mood = 'angry'; text = 'Обязательного осталось ' + mLeft + '. Я жду.'; }
+    else if (mLeft) { who = 'kassian'; mood = 'smug'; text = 'Обязательное: ' + (musts_.length - mLeft) + '/' + musts_.length + ' · всё: ' + (items.length - left.length) + '/' + items.length; }
+    else { text = 'Обязательное сделано! Ещё дел: ' + left.length; }
+    return { who, mood, text, items, left, mLeft };
+  }
+  function renderWatcher() {
+    const st = watcherState();
+    if (!watcherEl) {
+      watcherEl = h('button', { class: 'watcher', onclick: openWatch, 'aria-label': 'Мой день: что осталось' });
+      document.body.append(watcherEl);
+    }
+    watcherEl.className = 'watcher mood-' + st.mood;
+    watcherEl.innerHTML = D.portrait(st.who, st.mood);
+    watcherEl.append(h('span', { class: 'watcher-bubble' }, st.text));
+  }
+  function openWatch() {
+    const wrap = h('div', { class: 'scold-wrap' });
+    const close = () => { wrap.classList.add('out'); setTimeout(() => wrap.remove(), 350); renderWatcher(); };
+    const body = h('div', { class: 'scold-body' });
+    const render = () => {
+      const st = watcherState();
+      const row = (it) => h('li', { class: it.done ? 'done' : '' }, h('label', {}, h('input', { type: 'checkbox', checked: it.done, onchange: (e) => { it.set(e.target.checked); setTimeout(render, 50); } }), h('span', {}, it.t)), h('span', { class: 'tag' }, it.tag));
+      const line = h('div', { class: 'scold-line' });
+      line.innerHTML = D.portrait(st.who, st.mood);
+      line.append(h('div', {}, h('b', {}, D.WHO[st.who].name), h('p', {}, st.text)));
+      body.replaceChildren(
+        h('p', { class: 'scold-kicker' }, greeting().line),
+        line,
+        h('p', { class: 'q-kicker' }, '＋ Добавить задачу на сегодня'),
+        quickAdd(iso(), render),
+        h('p', { class: 'q-kicker' }, '♛ Обязательное'),
+        h('ul', { class: 'quests' }, st.items.filter((i) => i.must).map(row)),
+        st.items.some((i) => !i.must) ? h('p', { class: 'q-kicker' }, '✦ Дела на сегодня') : null,
+        h('ul', { class: 'quests' }, st.items.filter((i) => !i.must).map(row)),
+        h('div', { class: 'scold-btns' },
+          h('a', { class: 'btn', href: 'section.html?s=plan' }, 'Открыть мой день'),
+          h('button', { class: 'btn-ghost', onclick: () => { close(); whatNow(); } }, 'Что мне делать?'),
+          h('button', { class: 'btn-ghost', onclick: () => { close(); urge(); } }, 'SOS: залипаю'),
+          h('button', { class: 'btn-ghost', onclick: close }, 'Закрыть')));
+      const inp = body.querySelector('.add-event input[type=text]');
+      if (inp) setTimeout(() => inp.focus(), 50);
+    };
+    render();
+    wrap.append(h('div', { class: 'scold sync-panel watch-panel', role: 'dialog' }, body));
+    wrap.addEventListener('click', (e) => { if (e.target === wrap) close(); });
+    document.body.append(wrap);
+  }
+  function nagCheck() {
+    const st = watcherState();
+    const hr = new Date().getHours();
+    const n = NAG.filter((x) => hr >= x.h).pop();
+    if (!n || !st.mLeft || store.get('kisses', {})[iso()]) return;
+    const key = 'nag:' + iso() + ':' + n.h;
+    if (store.get(key, false)) return;
+    D.rawSet(key, true);
+    D.toast([n.who, n.text(st.mLeft)], 12000, n.h >= 18 ? 'angry' : 'smug');
+  }
+  function scoldCheck() {
+    const n = failedDays();
+    const today = iso();
+    if (!n || store.get('kisses', {})[today]) return;
+    const shown = store.get('scold:shown:' + today, 0);
+    const ignored = store.get('scold:ignored:' + today, false);
+    // Показываем при первом открытии за день; если нажала «Потом» — снова через час.
+    if (!shown || (ignored && Date.now() - shown > 3600000)) {
+      D.rawSet('scold:shown:' + today, Date.now());
+      D.rawSet('scold:ignored:' + today, false);
+      scoldUnfinished(n);
+    }
+  }
+
   window.WIDGETS_EXTRA = X;
-  window.day = { greeting, todayItems, editMusts, checkKiss, whatNow, urge, grandPrize, startFocus, addEvent, fmtMin, minutesToday, berries };
+  window.day = { greeting, todayItems, editMusts, checkKiss, openWatch, failedDays, whatNow, urge, grandPrize, startFocus, addEvent, fmtMin, minutesToday, berries };
 
   // ---------- При загрузке любой страницы ----------
   function onLoad() {
     let kt = null;
     document.addEventListener('store-change', (e) => { if (e.detail === 'kisses') return; clearTimeout(kt); kt = setTimeout(checkKiss, 300); });
     setTimeout(checkKiss, 1200);
+    setTimeout(() => { renderWatcher(); scoldCheck(); setTimeout(nagCheck, 4000); }, 900);
+    ['activity', 'events', 'store-change'].forEach((ev) => document.addEventListener(ev, () => { clearTimeout(window.__wt); window.__wt = setTimeout(renderWatcher, 400); }));
+    setInterval(() => { renderWatcher(); nagCheck(); scoldCheck(); }, 60000);
     tick();
     setInterval(tick, 1000);
     document.addEventListener('focusrun', tick);

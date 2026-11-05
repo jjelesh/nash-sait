@@ -479,9 +479,6 @@
     render();
     document.addEventListener('activity', render);
     return card(w, info, head, grid,
-      h('div', { class: 'idea-btns' },
-        h('button', { class: 'btn-ghost', onclick: () => D.demo() }, 'Показать, как ругают'),
-        h('button', { class: 'btn-ghost', onclick: () => D.toast(D.PRAISE[Math.floor(Math.random() * D.PRAISE.length)], 0, 'sweet') }, 'Показать, как хвалят')),
       h('p', { class: 'muted' }, 'День засчитывается сам, когда ты отмечаешь задачу, учишь слово, проходишь тест, собираешь клубничку и т. п. Пропустишь — Лелуш и Джошуа это заметят.'));
   };
 

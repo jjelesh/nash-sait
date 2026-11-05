@@ -3,7 +3,7 @@
 // Вечером, если день пустой, предупреждают. Первая галочка дня — хвалят.
 (function () {
   // Какие сохранения считаются учёбой (а не просто сменой настроек).
-  const ACT = /(:planner:|:deadlines|:check:|:units|:progress|^learned:|^miss:|^plan:pomos|^plan:habits|^plan:tomorrow|:board:|^grammar:known|^events$|^focus:min:|^en:|^musts:done:)/;
+  const ACT = /(:planner:|:deadlines|:check:|:units|:progress|^learned:|^miss:|^plan:pomos|^plan:habits|^plan:tomorrow|:board:|^grammar:known|^events$|^focus:min:|^en:|^musts:done:|^practice:)/;
   const day = (d) => (d || new Date()).toLocaleDateString('sv-SE');
   const addDays = (iso, n) => { const d = new Date(iso + 'T12:00'); d.setDate(d.getDate() + n); return day(d); };
   const rawSet = store.set;
@@ -31,12 +31,12 @@
   }
 
   store.set = function (key, value) {
-    const m = /^learned:(hsk3|hsk4|verbs)$/.exec(key);
+    const m = /^learned:(hsk3|hsk4|verbs|en-a2|en-b1)$/.exec(key);
     if (m && Array.isArray(value)) {
       const before = (store.get(key, []) || []).length;
       const grew = value.length - before;
       if (grew > 0) {
-        const wk = 'words:' + (m[1] === 'verbs' ? 'en' : 'zh') + ':' + day();
+        const wk = 'words:' + (/^(verbs|en-)/.test(m[1]) ? 'en' : 'zh') + ':' + day();
         rawSet(wk, store.get(wk, 0) + grew);
       }
     }
@@ -163,27 +163,8 @@
     document.body.appendChild(wrap);
   }
 
-  function onLoad() {
-    const s = stats();
-    const t = day();
-    const home = document.body.classList.contains('home');
-    if (home) {
-      const chip = document.createElement('a');
-      chip.className = 'pill streak-chip';
-      chip.href = 'section.html?s=plan';
-      chip.textContent = s.streak ? '💋 ' + fill('{n} {d}', s.streak) + ' подряд' : s.missed ? '🥀 поцелуй потерян' : '✦ начни серию сегодня';
-      document.body.appendChild(chip);
-      if (s.missed && !s.today && store.get('scolded') !== t) {
-        rawSet('scolded', t);
-        setTimeout(() => scoldModal(s), 900);
-        return;
-      }
-    }
-    if (!s.today && new Date().getHours() >= 19 && store.get('evening-warned') !== t) {
-      rawSet('evening-warned', t);
-      setTimeout(() => toast(pick(EVENING), 9000, 'smug'), 1500);
-    }
-  }
+  // Выговоры за невыполненные дни и наблюдение за днём теперь в day.js (там видно задачи).
+  function onLoad() {}
   document.readyState === 'loading' ? document.addEventListener('DOMContentLoaded', onLoad) : onLoad();
 
   // Посмотреть, как герои ругают и хвалят, не пропуская дни.
@@ -191,5 +172,5 @@
     scoldModal(Object.assign(stats(), { missed: 1 + Math.floor(Math.random() * 6) }));
   }
 
-  window.discipline = { stats, activity, day, addDays, demo, toast, PRAISE, rawSet };
+  window.discipline = { stats, activity, day, addDays, demo, toast, PRAISE, rawSet, portrait, figure, fill, SCOLD, PENALTIES, WHO };
 })();

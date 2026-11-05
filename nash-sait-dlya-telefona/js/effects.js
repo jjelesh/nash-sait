@@ -23,7 +23,7 @@
   const fctx = fg.getContext('2d');
   let W = 0, H = 0, dpr = 1;
   function resize() {
-    dpr = touch ? 1 : Math.min(1.5, window.devicePixelRatio || 1);
+    dpr = 1;
     W = innerWidth; H = innerHeight;
     [bg, fg].forEach((c) => { c.width = W * dpr; c.height = H * dpr; c.style.width = W + 'px'; c.style.height = H + 'px'; });
     bctx.setTransform(dpr, 0, 0, dpr, 0, 0);
@@ -37,7 +37,7 @@
 
   // ---------- Падающие лепестки (фон) ----------
   const petals = [];
-  const PETALS = home ? (touch ? 16 : 34) : trainer ? (touch ? 5 : 9) : (touch ? 8 : 16);
+  const PETALS = home ? (touch ? 14 : 28) : trainer ? (touch ? 4 : 8) : (touch ? 6 : 12);
   function newPetal(top) {
     return {
       x: rnd(-40, W + 40), y: top ? rnd(-H, 0) : rnd(0, H),
@@ -144,13 +144,25 @@
 
   // ---------- Главный цикл ----------
   let t0 = performance.now();
+  // Фон (лепестки) рисуем 30 раз в секунду, передний слой — только когда есть искры.
+  let fgDirty = false, bgAcc = 0;
   function frame(now) {
-    const dt = Math.min(3, (now - t0) / 16.7);
+    requestAnimationFrame(frame);
+    if (document.hidden) { t0 = now; return; }
+    const step = Math.min(3, (now - t0) / 16.7);
     t0 = now;
+    bgAcc += step;
+    const drawBg = bgAcc >= 2;
+    if (parts.length || fgDirty) {
+      fctx.setTransform(1, 0, 0, 1, 0, 0);
+      fctx.clearRect(0, 0, fg.width, fg.height);
+      fgDirty = parts.length > 0;
+    }
+    if (!drawBg) { if (parts.length) drawParts(step); return; }
+    const dt = bgAcc;
+    bgAcc = 0;
     bctx.setTransform(1, 0, 0, 1, 0, 0);
-    fctx.setTransform(1, 0, 0, 1, 0, 0);
     bctx.clearRect(0, 0, bg.width, bg.height);
-    fctx.clearRect(0, 0, fg.width, fg.height);
     if (on) {
       petals.forEach((p, i) => {
         p.sway += 0.02 * dt;
@@ -174,6 +186,9 @@
         if (f.y < -20 || a <= 0) floaters.splice(i, 1);
       }
     }
+    drawParts(step);
+  }
+  function drawParts(dt) {
     for (let i = parts.length - 1; i >= 0; i--) {
       const p = parts[i];
       p.vy += p.g * dt;
@@ -185,7 +200,6 @@
       if (p.life <= 0) { parts.splice(i, 1); continue; }
       (p.kind === 'heart' ? drawHeart : drawStar)(fctx, p.x, p.y, p.s * (0.6 + p.life * 0.4), p.col, Math.min(1, p.life * 1.4), p.rot);
     }
-    requestAnimationFrame(frame);
   }
   requestAnimationFrame(frame);
 
@@ -332,7 +346,7 @@
     g.style.position = 'absolute';
     document.body.appendChild(g);
     setTimeout(() => g.remove(), 1500);
-  }, home ? 1400 : 1800);
+  }, 2500);
 
   // ---------- Боке-огоньки за страницей ----------
   if (false) {
