@@ -4,7 +4,7 @@
 (function () {
   const TOKEN = 'dasha-sync-token', GIST = 'dasha-sync-gist', LAST = 'dasha-sync-last', USER = 'dasha-sync-user';
   const FILE = 'dasha-hub.json', DESC = 'dasha-hub-sync (Наш сайт для Дарьи)';
-  const SKIP = new Set(['fx']);
+  const SKIP = new Set(['fx', 'audio:en', 'voice:en-US', 'voice:zh-CN']);
   const ls = {
     get: (k) => { try { return localStorage.getItem(k); } catch (e) { return null; } },
     set: (k, v) => { try { v == null ? localStorage.removeItem(k) : localStorage.setItem(k, v); } catch (e) {} }

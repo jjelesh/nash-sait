@@ -13,7 +13,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400;1,600;1,700&family=Great+Vibes&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/style.css?v=202611152010">
+  <link rel="stylesheet" href="css/style.css?v=202611152012">
 </head>
 <body class="spread-page">
   <header class="topnav">
@@ -31,14 +31,14 @@
 
   <footer class="foot"></footer>
 
-  <script src="js/store.js?v=202611152010"></script>
-  <script src="js/sync.js?v=202611152010"></script>
-  <script src="js/discipline.js?v=202611152010"></script>
-  <script src="js/sections.js?v=202611152010"></script>
-  <script src="js/widgets.js?v=202611152010"></script>
-  <script src="js/day.js?v=202611152010"></script>
-  <script src="js/speech.js?v=202611152010"></script>
-  <script src="js/hsk-data.js?v=202611152010"></script>
+  <script src="js/store.js?v=202611152012"></script>
+  <script src="js/sync.js?v=202611152012"></script>
+  <script src="js/discipline.js?v=202611152012"></script>
+  <script src="js/sections.js?v=202611152012"></script>
+  <script src="js/widgets.js?v=202611152012"></script>
+  <script src="js/day.js?v=202611152012"></script>
+  <script src="js/speech.js?v=202611152012"></script>
+  <script src="js/hsk-data.js?v=202611152012"></script>
   <script>
     // Свои слова как в Quizlet: пишешь слово (или по-русски) — перевод, пиньинь/транскрипция и произношение находятся сами.
     const lang = new URLSearchParams(location.search).get('lang') === 'zh' ? 'zh' : 'en';
@@ -195,6 +195,7 @@
         h('div', { class: 'page-head' }, h('h1', {}, isZh ? '我的词' : 'My words'), h('p', { class: 'sub' }, 'свои слова, как в Quizlet')),
         h('section', { class: 'card' }, h('h3', {}, 'Добавить слово'),
           h('p', { class: 'muted' }, 'Напиши слово — перевод, ' + (isZh ? 'пиньинь' : 'транскрипция') + ' и произношение найдутся сами. Можно писать и по-русски.'),
+          h('p', { class: 'muted' }, 'Голос: ', voicePicker(lang)),
           h('div', { class: 'add-row' }, input, h('button', { class: 'btn', onclick: find }, 'Найти')),
           preview),
         h('section', { class: 'card' }, h('h3', {}, 'Добавить списком'),
@@ -234,6 +235,6 @@
     renderLeft();
     renderRight();
   </script>
-  <script src="js/effects.js?v=202611152010"></script>
+  <script src="js/effects.js?v=202611152012"></script>
 </body>
 </html>
