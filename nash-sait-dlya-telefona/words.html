@@ -1,0 +1,239 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Наш сайт">
+  <meta name="theme-color" content="#f6d6df">
+  <link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
+  <link rel="manifest" href="manifest.json">
+  <title>Мои слова</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400;1,600;1,700&family=Great+Vibes&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css?v=202611152010">
+</head>
+<body class="spread-page">
+  <header class="topnav">
+    <a class="crown" href="index.html" title="К цветку">
+      <svg viewBox="0 0 34 24" fill="none" stroke="#c39a55" stroke-width="1.6"><path d="M3 20 L5 7 L11 13 L17 3 L23 13 L29 7 L31 20 Z" fill="#f8c9d8"/><path d="M3 22 H31"/></svg>
+      к цветку
+    </a>
+    <nav class="petal-nav" id="nav"></nav>
+  </header>
+
+  <main class="book">
+    <div class="page left" id="left"></div>
+    <div class="page right" id="right"></div>
+  </main>
+
+  <footer class="foot"></footer>
+
+  <script src="js/store.js?v=202611152010"></script>
+  <script src="js/sync.js?v=202611152010"></script>
+  <script src="js/discipline.js?v=202611152010"></script>
+  <script src="js/sections.js?v=202611152010"></script>
+  <script src="js/widgets.js?v=202611152010"></script>
+  <script src="js/day.js?v=202611152010"></script>
+  <script src="js/speech.js?v=202611152010"></script>
+  <script src="js/hsk-data.js?v=202611152010"></script>
+  <script>
+    // Свои слова как в Quizlet: пишешь слово (или по-русски) — перевод, пиньинь/транскрипция и произношение находятся сами.
+    const lang = new URLSearchParams(location.search).get('lang') === 'zh' ? 'zh' : 'en';
+    const KEY = 'mywords:' + lang;
+    const isZh = lang === 'zh';
+    const LP = isZh ? 'zh-CN' : 'en';
+    const words = () => store.get(KEY, []);
+    const save = (list) => store.set(KEY, list);
+    document.title = (isZh ? '中文' : 'English') + ' · мои слова';
+
+    document.getElementById('nav').append(
+      h('a', { href: 'section.html?s=' + (isZh ? 'chinese' : 'english') }, '‹ ' + (isZh ? '中文' : 'English')),
+      h('a', { href: 'words.html?lang=en', class: !isZh ? 'on' : '' }, 'Мои слова EN'),
+      h('a', { href: 'words.html?lang=zh', class: isZh ? 'on' : '' }, 'Мои слова 中文'),
+      h('a', { href: 'trainer.html?t=my-' + lang }, 'Учить мои слова'));
+
+    // ---------- Поиск перевода ----------
+    const cyr = (t) => /[а-яё]/i.test(t);
+    const hasHan = (t) => /[一-鿿]/.test(t);
+    async function mymemory(q, pair) {
+      const ctl = new AbortController();
+      setTimeout(() => ctl.abort(), 6000);
+      const r = await fetch('https://api.mymemory.translated.net/get?q=' + encodeURIComponent(q) + '&langpair=' + pair, { signal: ctl.signal });
+      const j = await r.json();
+      const main = (j.responseData && j.responseData.translatedText) || '';
+      const alts = (j.matches || []).map((m) => m.translation).filter(Boolean);
+      const uniq = [...new Set([main, ...alts].map((x) => x.trim()).filter((x) => x && x.toLowerCase() !== q.toLowerCase()))];
+      return uniq.slice(0, 5);
+    }
+    let pinyinLib = null;
+    function loadPinyin() {
+      if (window.pinyinPro) return Promise.resolve(window.pinyinPro);
+      if (pinyinLib) return pinyinLib;
+      pinyinLib = new Promise((res) => {
+        const sc = document.createElement('script');
+        sc.src = 'https://cdn.jsdelivr.net/npm/pinyin-pro@3.26.0/dist/index.js';
+        sc.onload = () => res(window.pinyinPro);
+        sc.onerror = () => res(null);
+        document.head.append(sc);
+      });
+      return pinyinLib;
+    }
+    const HSK_ALL = isZh ? [...HSK.hsk3, ...HSK.hsk4] : [];
+    async function lookup(input) {
+      const q = input.trim();
+      const out = { w: q, ru: '', tr: '', alts: [], note: '' };
+      if (isZh) {
+        if (cyr(q)) {
+          const res = await mymemory(q, 'ru|zh-CN');
+          out.w = (res.find(hasHan) || res[0] || '').replace(/[。.！!]$/, '');
+          out.ru = q;
+          out.alts = res.filter((x) => x !== out.w);
+        } else {
+          const hit = HSK_ALL.find((x) => x[0] === q);
+          if (hit) { out.tr = hit[1]; out.ru = hit[2]; out.note = 'из твоего словаря HSK'; }
+          else { const res = await mymemory(q, 'zh-CN|ru'); out.ru = res[0] || ''; out.alts = res.slice(1); }
+        }
+        if (!out.tr && out.w) {
+          const hit = HSK_ALL.find((x) => x[0] === out.w);
+          if (hit) out.tr = hit[1];
+          else { const lib = await loadPinyin(); if (lib) out.tr = lib.pinyin(out.w); }
+        }
+      } else {
+        const dict = async (word) => {
+          try {
+            const ctl = new AbortController();
+            setTimeout(() => ctl.abort(), 3000);
+            const r = await fetch('https://api.dictionaryapi.dev/api/v2/entries/en/' + encodeURIComponent(word.toLowerCase()), { signal: ctl.signal });
+            if (!r.ok) return {};
+            const j = await r.json();
+            const ex = j[0].meanings.flatMap((m) => m.definitions).find((d) => d.example);
+            return { tr: j[0].phonetic || (j[0].phonetics.find((p) => p.text) || {}).text || '', note: ex ? 'пример: ' + ex.example : '' };
+          } catch (e) { return {}; }
+        };
+        if (cyr(q)) {
+          const res = await mymemory(q, 'ru|en');
+          out.w = (res[0] || '').replace(/[.!]$/, '');
+          out.ru = q;
+          out.alts = res.slice(1);
+          Object.assign(out, await dict(out.w));
+        } else {
+          // перевод и транскрипция ищутся одновременно
+          const [res, d] = await Promise.all([mymemory(q, 'en|ru'), dict(q)]);
+          out.ru = res[0] || '';
+          out.alts = res.slice(1);
+          Object.assign(out, d);
+        }
+      }
+      return out;
+    }
+
+    // ---------- Левая страница: добавление ----------
+    const sets = () => [...new Set(['Без набора', ...words().map((w) => w.set)])];
+    let lastSet = store.get('mywords:lastset:' + lang, 'Без набора');
+
+    function renderLeft() {
+      const input = h('input', { type: 'text', class: 'search', placeholder: isZh ? 'Иероглифы или слово по-русски' : 'Слово, фраза или по-русски', autocomplete: 'off' });
+      const preview = h('div', { class: 'word-preview' });
+      const setIn = h('input', { type: 'text', class: 'search', list: 'setlist', value: lastSet, placeholder: 'Набор (папка), например «Урок 5»' });
+      const dl = h('datalist', { id: 'setlist' }, sets().map((x) => h('option', { value: x })));
+      const find = async () => {
+        if (!input.value.trim()) return input.focus();
+        preview.replaceChildren(h('p', { class: 'muted' }, 'Ищу перевод…'));
+        let r;
+        try { r = await lookup(input.value); } catch (e) { r = { w: input.value.trim(), ru: '', tr: '', alts: [], note: 'Не получилось найти перевод (нет интернета?). Впиши сама.' }; }
+        const wIn = h('input', { type: 'text', value: r.w, class: isZh ? 'han-in' : '' });
+        const trIn = h('input', { type: 'text', value: r.tr, placeholder: isZh ? 'пиньинь' : 'транскрипция' });
+        const ruIn = h('input', { type: 'text', value: r.ru, placeholder: 'перевод' });
+        preview.replaceChildren(
+          h('div', { class: 'wp-row' }, wIn, sayBtn(() => wIn.value, lang)),
+          trIn, ruIn,
+          r.alts.length ? h('div', { class: 'wp-alts' }, h('span', { class: 'muted' }, 'другие варианты: '), r.alts.map((a) => h('button', { class: 'tag-btn', onclick: () => { (cyr(a) ? ruIn : wIn).value = a; } }, a))) : null,
+          r.note ? h('p', { class: 'muted' }, r.note) : null,
+          setIn, dl,
+          h('div', { class: 'idea-btns' }, h('button', { class: 'btn', onclick: () => {
+            if (!wIn.value.trim()) return;
+            lastSet = setIn.value.trim() || 'Без набора';
+            store.set('mywords:lastset:' + lang, lastSet);
+            const list = words();
+            if (list.some((x) => x.w === wIn.value.trim())) { preview.replaceChildren(h('p', { class: 'muted' }, 'Это слово уже есть ♥')); return; }
+            list.unshift({ w: wIn.value.trim(), tr: trIn.value.trim(), ru: ruIn.value.trim(), set: lastSet, added: new Date().toLocaleDateString('sv-SE') });
+            save(list);
+            input.value = '';
+            preview.replaceChildren(h('p', { class: 'all-done' }, 'Добавлено ♥'));
+            input.focus();
+            renderRight();
+          } }, 'Сохранить слово')));
+        say(wIn.value, lang);
+      };
+      input.addEventListener('keydown', (e) => e.key === 'Enter' && find());
+
+      const bulk = h('textarea', { rows: 6, placeholder: isZh ? 'По одному на строку:\n努力\n机会 - шанс' : 'По одному на строку:\nachieve\nopportunity - возможность' });
+      const bulkStatus = h('p', { class: 'muted' });
+      const importBulk = async () => {
+        const lines = bulk.value.split('\n').map((x) => x.trim()).filter(Boolean);
+        if (!lines.length) return;
+        const set = setIn.value.trim() || 'Без набора';
+        let n = 0;
+        for (const line of lines) {
+          bulkStatus.textContent = 'Перевожу ' + (++n) + ' из ' + lines.length + '…';
+          const [w, ru] = line.split(/\s+[-–—]\s+|\t/);
+          let r = { w, ru: ru || '', tr: '' };
+          try { const f = await lookup(w); r = { w: f.w || w, ru: ru || f.ru, tr: f.tr }; } catch (e) {}
+          const list = words();
+          if (!list.some((x) => x.w === r.w)) { list.unshift(Object.assign(r, { set, added: new Date().toLocaleDateString('sv-SE') })); save(list); }
+          await new Promise((res) => setTimeout(res, 250));
+        }
+        bulkStatus.textContent = 'Готово: ' + lines.length + ' ♥';
+        bulk.value = '';
+        renderRight();
+      };
+
+      document.getElementById('left').replaceChildren(
+        h('div', { class: 'page-head' }, h('h1', {}, isZh ? '我的词' : 'My words'), h('p', { class: 'sub' }, 'свои слова, как в Quizlet')),
+        h('section', { class: 'card' }, h('h3', {}, 'Добавить слово'),
+          h('p', { class: 'muted' }, 'Напиши слово — перевод, ' + (isZh ? 'пиньинь' : 'транскрипция') + ' и произношение найдутся сами. Можно писать и по-русски.'),
+          h('div', { class: 'add-row' }, input, h('button', { class: 'btn', onclick: find }, 'Найти')),
+          preview),
+        h('section', { class: 'card' }, h('h3', {}, 'Добавить списком'),
+          h('p', { class: 'muted' }, 'Вставь сразу много слов (например, из Quizlet или учебника), каждое с новой строки. Перевод через « - » можно указать сама. Набор — из поля выше.'),
+          bulk, h('div', { class: 'idea-btns' }, h('button', { class: 'btn', onclick: importBulk }, 'Добавить все'), bulkStatus)),
+        h('section', { class: 'card' }, h('h3', {}, 'Учить'),
+          h('div', { class: 'trainers' },
+            h('a', { class: 'trainer-btn', href: 'trainer.html?t=my-' + lang }, h('b', {}, 'Карточки и тесты'), h('span', {}, 'все мои слова · ' + words().length)))));
+    }
+
+    // ---------- Правая страница: список ----------
+    let q = '';
+    function renderRight() {
+      const list = words();
+      const search = h('input', { class: 'search', placeholder: 'Поиск по моим словам', value: q });
+      search.addEventListener('input', () => { q = search.value; draw(); });
+      const box = h('div');
+      const draw = () => {
+        const f = list.filter((w) => !q || (w.w + ' ' + w.ru + ' ' + w.tr + ' ' + w.set).toLowerCase().includes(q.toLowerCase()));
+        const groups = {};
+        f.forEach((w) => (groups[w.set] = groups[w.set] || []).push(w));
+        box.replaceChildren(...(f.length ? Object.entries(groups).map(([set, ws]) => h('div', { class: 'word-set' },
+          h('h4', { class: 'rule-level' }, set + ' · ' + ws.length),
+          h('ul', { class: 'my-words' }, ws.map((w) => h('li', {},
+            sayBtn(w.w, lang),
+            h('span', { class: 'mw-w' + (isZh ? ' han-in' : '') }, w.w),
+            h('span', { class: 'mw-tr' }, w.tr),
+            h('span', { class: 'mw-ru' }, w.ru),
+            h('button', { class: 'x', title: 'Удалить', onclick: () => { save(words().filter((x) => x.w !== w.w)); renderRight(); renderLeft(); } }, '×')))))) : [h('p', { class: 'muted' }, list.length ? 'Ничего не нашлось.' : 'Пока пусто. Добавь первое слово слева.')]));
+      };
+      draw();
+      document.getElementById('right').replaceChildren(
+        h('p', { class: 'motto' }, isZh ? '每天一点点 · каждый день понемногу' : 'Little by little, a little becomes a lot.'),
+        h('section', { class: 'card' }, h('h3', {}, 'Мои слова · ' + list.length), search, box));
+    }
+
+    renderLeft();
+    renderRight();
+  </script>
+  <script src="js/effects.js?v=202611152010"></script>
+</body>
+</html>

@@ -10,6 +10,7 @@ window.SECTIONS = [
     left: [
       { type: 'trainer', title: 'Мой путь', items: [
         { href: 'english.html', label: 'Путь A2 → C1', note: 'слова, грамматика, тексты, аудио, эссе, говорение' },
+        { href: 'words.html?lang=en', label: 'Мои слова', note: 'добавляй слова — перевод и произношение сами' },
         { href: 'trainer.html?t=verbs', label: 'Неправильные глаголы', note: 'твой листок: таблица, карточки, тест' }
       ] },
       { type: 'links', title: 'Мои Quizlet', items: [
@@ -51,6 +52,7 @@ window.SECTIONS = [
     motto: '千里之行，始于足下 · путь в тысячу ли начинается с первого шага',
     left: [
       { type: 'trainer', title: 'Тренажёры слов', items: [
+        { href: 'words.html?lang=zh', label: 'Мои слова', note: 'иероглиф → пиньинь, перевод, произношение' },
         { href: 'trainer.html?t=hsk3', label: 'HSK 3 · 500 слов', note: 'из твоего словаря HSK 3.0' },
         { href: 'trainer.html?t=hsk4', label: 'HSK 4 · 975 слов', note: 'из твоего словаря HSK 4 3.0' },
         { href: 'grammar.html', label: 'Грамматика HSK 1–5', note: '151 правило с примерами, правило дня' }

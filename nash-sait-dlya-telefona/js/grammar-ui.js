@@ -15,7 +15,7 @@
       h('p', { class: 'rule-pattern' }, r[2]),
       h('p', { class: 'rule-text' }, r[3]),
       h('div', { class: 'rule-examples' }, r[4].map(([zh, py, ru]) => h('div', { class: 'ex' },
-        h('div', { class: 'ex-zh' }, zh), h('div', { class: 'ex-py' }, py), h('div', { class: 'ex-ru' }, ru))))
+        h('div', { class: 'ex-zh' }, zh, window.sayBtn ? sayBtn(zh, 'zh') : null), h('div', { class: 'ex-py' }, py), h('div', { class: 'ex-ru' }, ru))))
     ];
   }
 

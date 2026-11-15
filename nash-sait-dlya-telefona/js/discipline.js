@@ -3,7 +3,7 @@
 // Вечером, если день пустой, предупреждают. Первая галочка дня — хвалят.
 (function () {
   // Какие сохранения считаются учёбой (а не просто сменой настроек).
-  const ACT = /(:planner:|:deadlines|:check:|:units|:progress|^learned:|^miss:|^plan:pomos|^plan:habits|^plan:tomorrow|:board:|^grammar:known|^events$|^focus:min:|^en:|^musts:done:|^practice:)/;
+  const ACT = /(:planner:|:deadlines|:check:|:units|:progress|^learned:|^miss:|^plan:pomos|^plan:habits|^plan:tomorrow|:board:|^grammar:known|^events$|^focus:min:|^en:|^musts:done:|^practice:|^mywords:)/;
   const day = (d) => (d || new Date()).toLocaleDateString('sv-SE');
   const addDays = (iso, n) => { const d = new Date(iso + 'T12:00'); d.setDate(d.getDate() + n); return day(d); };
   const rawSet = store.set;
@@ -31,12 +31,12 @@
   }
 
   store.set = function (key, value) {
-    const m = /^learned:(hsk3|hsk4|verbs|en-a2|en-b1)$/.exec(key);
+    const m = /^learned:(hsk3|hsk4|verbs|en-a2|en-b1|my-en|my-zh)$/.exec(key);
     if (m && Array.isArray(value)) {
       const before = (store.get(key, []) || []).length;
       const grew = value.length - before;
       if (grew > 0) {
-        const wk = 'words:' + (/^(verbs|en-)/.test(m[1]) ? 'en' : 'zh') + ':' + day();
+        const wk = 'words:' + (/^(verbs|en-|my-en)/.test(m[1]) ? 'en' : 'zh') + ':' + day();
         rawSet(wk, store.get(wk, 0) + grew);
       }
     }

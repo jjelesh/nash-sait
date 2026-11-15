@@ -119,6 +119,7 @@
     const done = dayComplete(day);
     if (done === !!k[day]) return;
     if (done) k[day] = true; else delete k[day];
+    setTimeout(applyWilt, 50);
     D.rawSet('kisses', k);
     try { localStorage.setItem('dasha-hub-ts', JSON.stringify(Object.assign(store.stamps(), { kisses: Date.now() }))); } catch (e) {}
     document.dispatchEvent(new CustomEvent('activity'));
@@ -634,43 +635,85 @@
     return n;
   }
 
+  // Выговор за пропуски. Закрыть нельзя, пока не примешь долг; за 3+ дня — ещё и обещание.
   function scoldUnfinished(n) {
     const yest = addDays(iso(), -1);
     const left = todayItems(yest).filter((i) => !i.done);
+    const lastSeen = store.get('lastSeen', iso());
+    const away = Math.max(0, Math.round((new Date(iso() + 'T12:00') - new Date(lastSeen + 'T12:00')) / 864e5) - 1);
     const L = n >= 4 ? 'severe' : n >= 2 ? 'medium' : 'mild';
     const lines = {
       mild: [['kassian', 'Вчера ты не доделала день. Я всё видел: ' + left.length + ' ' + plural(left.length, 'пункт остался', 'пункта остались', 'пунктов остались') + '.'],
-        ['elian', 'Без поцелуя вчера, Дарьюшка. Сегодня исправим?']],
-      medium: [['kassian', n + ' ' + plural(n, 'день', 'дня', 'дней') + ' подряд без выполненного плана. Это уже не случайность, это привычка.'],
-        ['elian', 'Я ждал вчера вечером. И позавчера. Поцелуи сами себя не заработают.']],
-      severe: [['kassian', n + ' ' + plural(n, 'день', 'дней', 'дней') + ' без выполненного дня. «Уехать учиться за границу» — пока только красивая фраза. Докажи, что нет.'],
-        ['tigra', 'Мяфка смотрит на тебя долгим взглядом и уходит спать на учебник. Демонстративно.']]
+        ['elian', 'Без поцелуя вчера, Дарьюшка. Долг закроем сегодня.']],
+      medium: [['kassian', n + ' ' + plural(n, 'день', 'дня', 'дней') + ' подряд без выполненного плана. Это уже привычка, и мне она не нравится.'],
+        ['elian', 'Я ждал. Поцелуи сами себя не заработают. Сегодня — двойная норма.']],
+      severe: [['kassian', n + ' ' + plural(n, 'день', 'дня', 'дней') + ' без выполненного дня. Цветок вянет, и мы тоже. «Уехать учиться» — пока просто слова.'],
+        ['elian', 'Мне правда грустно, Дарья. Возвращайся — но по-настоящему, с обещанием.']]
     }[L];
-    const pens = D.PENALTIES.slice().sort(() => Math.random() - 0.5).slice(0, Math.min(3, n));
-    const wrap = h('div', { class: 'scold-wrap' });
+    if (away >= 2) lines.unshift(['tigra', 'Тебя не было ' + away + ' ' + plural(away, 'день', 'дня', 'дней') + '. Мяфка сидела у двери и ждала. Оливка обиделась.']);
+    const nPen = Math.min(8, n * 2);
+    const pens = D.PENALTIES.slice().sort(() => Math.random() - 0.5).concat(D.PENALTIES).slice(0, nPen);
+    const promise = n >= 3 ? 'я больше не пропускаю' : '';
+    const wrap = h('div', { class: 'scold-wrap blocking' });
     const close = () => { wrap.classList.add('out'); setTimeout(() => wrap.remove(), 350); };
+    const input = promise ? h('input', { type: 'text', class: 'search', placeholder: 'напиши: ' + promise, autocomplete: 'off' }) : null;
     const body = h('div', { class: 'scold-body' },
       h('p', { class: 'scold-kicker' }, n === 1 ? 'Вчера — без поцелуя' : n + ' ' + plural(n, 'день', 'дня', 'дней') + ' без поцелуя'),
       ...lines.map(([w, t]) => { const row = h('div', { class: 'scold-line' }); row.innerHTML = D.portrait(w, 'angry'); row.append(h('div', {}, h('b', {}, D.WHO[w].name), h('p', {}, t))); return row; }),
       left.length ? h('div', { class: 'scold-pen' }, h('b', {}, 'Не сделано вчера:'), h('ul', {}, left.slice(0, 8).map((i) => h('li', {}, '✗ ' + i.t.replace(/ · \d+\/\d+$/, ''))))) : null,
-      h('div', { class: 'scold-pen' }, h('b', {}, 'Наказание на сегодня:'), h('ul', {}, pens.map((p) => h('li', {}, '⚔ ' + p)))),
+      h('div', { class: 'scold-pen debt' }, h('b', {}, 'Долг на сегодня (' + nPen + '):'), h('ul', {}, pens.map((p) => h('li', {}, '⚔ ' + p))),
+        h('p', { class: 'muted' }, 'Пока долг не закрыт, поцелуя не будет, а цветок будет вянуть.')),
+      input ? h('p', {}, 'Чтобы продолжить, напиши обещание: «' + promise + '»') : null,
+      input,
       h('div', { class: 'scold-btns' },
         h('button', { class: 'btn', onclick: () => {
+          if (input && input.value.trim().toLowerCase().replace(/ё/g, 'е') !== promise.replace(/ё/g, 'е')) { input.classList.add('shake'); setTimeout(() => input.classList.remove('shake'), 500); input.focus(); return; }
           const today = iso();
           left.filter((i) => !i.must).forEach((i) => addEvent(today, i.t, i.time || '', i.dur || 60));
-          pens.forEach((p) => addEvent(today, '⚔ ' + p, '', 40));
+          pens.forEach((p) => addEvent(today, '⚔ Долг: ' + p, '', 40));
+          store.set('scold:accepted:' + today, true);
           close();
-          setTimeout(() => D.toast(['kassian', 'Хорошо. Хвосты и наказание — в плане на сегодня. Вечером проверю.'], 8000, 'smug'), 400);
-        } }, 'Перенести хвосты и наказание на сегодня'),
-        h('button', { class: 'btn-ghost', onclick: () => {
-          store.set('scold:ignored:' + iso(), true);
-          close();
-          setTimeout(() => D.toast(['elian', 'Игнорировать меня — плохая идея. Я напомню снова через час.'], 8000, 'angry'), 400);
-        } }, 'Потом')));
+          applyWilt();
+          setTimeout(() => D.toast(['kassian', 'Долг в плане на сегодня. Я буду напоминать каждые полчаса, пока не закроешь.'], 9000, 'smug'), 400);
+        } }, 'Принимаю долг'),
+        h('button', { class: 'btn-ghost', onclick: remindersIcs }, '📅 Напоминания в календарь iPhone')));
     const fig = h('div', {});
-    fig.innerHTML = D.figure(lines[0][0]);
+    fig.innerHTML = D.figure(lines.find((l) => l[0] !== 'tigra')[0]);
     wrap.append(h('div', { class: 'scold', role: 'dialog' }, fig.firstChild || '', body));
     document.body.append(wrap);
+    if (input) setTimeout(() => input.focus(), 300);
+  }
+
+  // Долг: несделанные пункты «⚔ Долг» на сегодня.
+  const debtLeft = () => (events()[iso()] || []).filter((e) => /^⚔/.test(e.t) && !e.done).length;
+
+  // Цветок вянет: при 2+ днях без поцелуя сайт бледнеет, пока сегодня не заработан поцелуй.
+  function applyWilt() {
+    const n = failedDays();
+    const kissed = !!store.get('kisses', {})[iso()];
+    document.documentElement.classList.toggle('wilt', n >= 2 && !kissed);
+    document.documentElement.classList.toggle('wilt-hard', n >= 4 && !kissed);
+  }
+
+  // Ежедневные напоминания в календарь телефона: работают, даже если сайт не открыт.
+  function remindersIcs() {
+    const site = location.href.replace(/[^/]*$/, '') + 'index.html';
+    const stamp = new Date().toISOString().replace(/[-:]/g, '').replace(/\.\d+/, '');
+    const start = iso().replace(/-/g, '');
+    const ev = (hhmm, title, text, i) => [
+      'BEGIN:VEVENT', 'UID:dasha-hub-' + i + '@nash-sait', 'DTSTAMP:' + stamp,
+      'DTSTART:' + start + 'T' + hhmm + '00', 'DURATION:PT15M', 'RRULE:FREQ=DAILY',
+      'SUMMARY:' + title, 'DESCRIPTION:' + text + '\\n' + site, 'URL:' + site,
+      'BEGIN:VALARM', 'ACTION:DISPLAY', 'DESCRIPTION:' + title, 'TRIGGER:PT0M', 'END:VALARM', 'END:VEVENT'].join('\r\n');
+    const list = musts().filter((m) => m.time).map((m, i) => ev(m.time.replace(':', ''), '♛ ' + m.t, 'Обязательное каждый день. Отметь на сайте.', 'm' + i));
+    list.push(ev('1300', '💋 Лелуш: 25 слов EN + 25 слов 中文', 'Середина дня. Открой тренажёры.', 'noon'));
+    list.push(ev('2100', '🥀 Джошуа: проверка дня', 'Открой сайт и закрой все пункты — иначе поцелуя не будет.', 'eve'));
+    const ics = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Nash sait//RU', 'CALSCALE:GREGORIAN', ...list, 'END:VCALENDAR'].join('\r\n');
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([ics], { type: 'text/calendar' }));
+    a.download = 'napominaniya-nash-sait.ics';
+    a.click();
+    D.toast(['elian', 'Открой файл и нажми «Добавить все» — тогда мы будем напоминать даже когда сайт закрыт.'], 10000, 'sweet');
   }
 
   // Плавающий наблюдатель на каждой странице.
@@ -690,6 +733,7 @@
     const kissed = !!store.get('kisses', {})[iso()];
     let who = 'elian', mood = 'sweet', text;
     if (kissed) text = 'Всё сделано. Поцелуй твой 💋';
+    else if (debtLeft()) { who = 'kassian'; mood = 'angry'; text = 'Долг: ' + debtLeft() + ' ' + plural(debtLeft(), 'пункт', 'пункта', 'пунктов') + '. Закрой его.'; }
     else if (!items.length) { who = 'kassian'; mood = 'smug'; text = 'План на сегодня пуст. Добавь задачи.'; }
     else if (hr >= 18 && mLeft) { who = 'kassian'; mood = 'angry'; text = 'Обязательного осталось ' + mLeft + '. Я жду.'; }
     else if (mLeft) { who = 'kassian'; mood = 'smug'; text = 'Обязательное: ' + (musts_.length - mLeft) + '/' + musts_.length + ' · всё: ' + (items.length - left.length) + '/' + items.length; }
@@ -729,6 +773,7 @@
           h('a', { class: 'btn', href: 'section.html?s=plan' }, 'Открыть мой день'),
           h('button', { class: 'btn-ghost', onclick: () => { close(); whatNow(); } }, 'Что мне делать?'),
           h('button', { class: 'btn-ghost', onclick: () => { close(); urge(); } }, 'SOS: залипаю'),
+          h('button', { class: 'btn-ghost', onclick: remindersIcs }, '📅 Напоминания в календарь'),
           h('button', { class: 'btn-ghost', onclick: close }, 'Закрыть')));
       const inp = body.querySelector('.add-event input[type=text]');
       if (inp) setTimeout(() => inp.focus(), 50);
@@ -751,26 +796,29 @@
   function scoldCheck() {
     const n = failedDays();
     const today = iso();
+    applyWilt();
     if (!n || store.get('kisses', {})[today]) return;
-    const shown = store.get('scold:shown:' + today, 0);
-    const ignored = store.get('scold:ignored:' + today, false);
-    // Показываем при первом открытии за день; если нажала «Потом» — снова через час.
-    if (!shown || (ignored && Date.now() - shown > 3600000)) {
-      D.rawSet('scold:shown:' + today, Date.now());
-      D.rawSet('scold:ignored:' + today, false);
-      scoldUnfinished(n);
+    if (!store.get('scold:accepted:' + today, false)) {
+      if (!document.querySelector('.scold-wrap.blocking')) scoldUnfinished(n);
+      return;
+    }
+    const d = debtLeft(), last = store.get('debt:nag', 0);
+    if (d && Date.now() - last > 30 * 60000) {
+      D.rawSet('debt:nag', Date.now());
+      D.toast(['kassian', 'Долг ещё не закрыт: ' + d + ' ' + plural(d, 'пункт', 'пункта', 'пунктов') + '. Я жду.'], 10000, 'angry');
     }
   }
 
   window.WIDGETS_EXTRA = X;
-  window.day = { greeting, todayItems, editMusts, checkKiss, openWatch, failedDays, whatNow, urge, grandPrize, startFocus, addEvent, fmtMin, minutesToday, berries };
+  window.day = { greeting, todayItems, editMusts, checkKiss, openWatch, failedDays, remindersIcs, scoldCheck, whatNow, urge, grandPrize, startFocus, addEvent, fmtMin, minutesToday, berries };
 
   // ---------- При загрузке любой страницы ----------
   function onLoad() {
     let kt = null;
     document.addEventListener('store-change', (e) => { if (e.detail === 'kisses') return; clearTimeout(kt); kt = setTimeout(checkKiss, 300); });
     setTimeout(checkKiss, 1200);
-    setTimeout(() => { renderWatcher(); scoldCheck(); setTimeout(nagCheck, 4000); }, 900);
+    setTimeout(() => { renderWatcher(); scoldCheck(); D.rawSet('lastSeen', iso()); setTimeout(nagCheck, 4000); }, 900);
+    applyWilt();
     ['activity', 'events', 'store-change'].forEach((ev) => document.addEventListener(ev, () => { clearTimeout(window.__wt); window.__wt = setTimeout(renderWatcher, 400); }));
     setInterval(() => { renderWatcher(); nagCheck(); scoldCheck(); }, 60000);
     tick();

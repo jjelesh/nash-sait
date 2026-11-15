@@ -13,7 +13,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400;1,600;1,700&family=Great+Vibes&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/style.css?v=202611060104">
+  <link rel="stylesheet" href="css/style.css?v=202611152010">
 </head>
 <body class="spread-page">
   <header class="topnav">
@@ -40,15 +40,16 @@
   <footer class="foot">
   </footer>
 
-  <script src="js/store.js?v=202611060104"></script>
-  <script src="js/sync.js?v=202611060104"></script>
-  <script src="js/discipline.js?v=202611060104"></script>
-  <script src="js/sections.js?v=202611060104"></script>
-  <script src="js/widgets.js?v=202611060104"></script>
-  <script src="js/day.js?v=202611060104"></script>
-  <script src="js/en-practice.js?v=202611060104"></script>
-  <script src="js/practice.js?v=202611060104"></script>
-  <script src="js/english-data.js?v=202611060104"></script>
+  <script src="js/store.js?v=202611152010"></script>
+  <script src="js/sync.js?v=202611152010"></script>
+  <script src="js/discipline.js?v=202611152010"></script>
+  <script src="js/sections.js?v=202611152010"></script>
+  <script src="js/widgets.js?v=202611152010"></script>
+  <script src="js/day.js?v=202611152010"></script>
+  <script src="js/speech.js?v=202611152010"></script>
+  <script src="js/en-practice.js?v=202611152010"></script>
+  <script src="js/practice.js?v=202611152010"></script>
+  <script src="js/english-data.js?v=202611152010"></script>
   <script>
     const STEP = ['15 новых слов (Quizlet)', '1 тема грамматики + упражнения в Мерфи', '1 текст своего уровня', '1 аудио или видео', '2 минуты говорения вслух', '1 абзац текста или эссе'];
     const today = new Date().toLocaleDateString('sv-SE');
@@ -119,6 +120,7 @@
           pbox),
         card('Слова: тренажёры', 'wordtrain',
           h('div', { class: 'trainers' },
+            h('a', { class: 'trainer-btn', href: 'words.html?lang=en' }, h('b', {}, 'Мои слова'), h('span', {}, 'добавляй свои — перевод найдётся сам')),
             h('a', { class: 'trainer-btn', href: 'trainer.html?t=en-a2' }, h('b', {}, 'Слова A2'), h('span', {}, '161 частых слов: карточки и тесты')),
             h('a', { class: 'trainer-btn', href: 'trainer.html?t=en-b1' }, h('b', {}, 'Слова B1'), h('span', {}, '153 слов для учёбы и эссе')),
             h('a', { class: 'trainer-btn', href: 'trainer.html?t=verbs' }, h('b', {}, 'Неправильные глаголы'), h('span', {}, 'твой листок'))),
@@ -131,7 +133,7 @@
             row.append(
               h('button', { class: 'rule-head', onclick: () => row.classList.toggle('open') }, h('span', { class: 'lvl' }, L.id), h('b', {}, g[0])),
               h('div', { class: 'rule-more' }, h('p', { class: 'rule-text' }, g[1]),
-                h('div', { class: 'ex' }, h('div', { class: 'ex-zh', style: 'font-family:inherit' }, g[2]), h('div', { class: 'ex-ru' }, g[3])),
+                h('div', { class: 'ex' }, h('div', { class: 'ex-zh', style: 'font-family:inherit' }, g[2], ' ', sayBtn(g[2], 'en')), h('div', { class: 'ex-ru' }, g[3])),
                 h('button', { class: 'btn-ghost know' + (K.has(id) ? ' on' : ''), onclick: () => { toggleIn('en:known', id); render(); } }, K.has(id) ? '✓ знаю' : 'отметить: знаю')));
             return row;
           }))),
@@ -175,6 +177,6 @@
     startPractice();
     if (location.hash) setTimeout(() => document.querySelector(location.hash)?.scrollIntoView({ behavior: 'smooth' }), 300);
   </script>
-  <script src="js/effects.js?v=202611060104"></script>
+  <script src="js/effects.js?v=202611152010"></script>
 </body>
 </html>

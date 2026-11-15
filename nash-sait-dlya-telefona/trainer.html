@@ -13,7 +13,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400;1,600;1,700&family=Great+Vibes&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/style.css?v=202611060104">
+  <link rel="stylesheet" href="css/style.css?v=202611152010">
 </head>
 <body class="spread-page">
   <header class="topnav">
@@ -49,22 +49,25 @@
   <footer class="foot">
   </footer>
 
-  <script src="js/store.js?v=202611060104"></script>
-  <script src="js/sync.js?v=202611060104"></script>
-  <script src="js/discipline.js?v=202611060104"></script>
-  <script src="js/sections.js?v=202611060104"></script>
-  <script src="js/widgets.js?v=202611060104"></script>
-  <script src="js/day.js?v=202611060104"></script>
-  <script src="js/verbs-data.js?v=202611060104"></script>
-  <script src="js/en-words.js?v=202611060104"></script>
-  <script src="js/hsk-data.js?v=202611060104"></script>
-  <script src="js/grammar-data.js?v=202611060104"></script>
-  <script src="js/grammar-ui.js?v=202611060104"></script>
+  <script src="js/store.js?v=202611152010"></script>
+  <script src="js/sync.js?v=202611152010"></script>
+  <script src="js/discipline.js?v=202611152010"></script>
+  <script src="js/sections.js?v=202611152010"></script>
+  <script src="js/widgets.js?v=202611152010"></script>
+  <script src="js/day.js?v=202611152010"></script>
+  <script src="js/verbs-data.js?v=202611152010"></script>
+  <script src="js/speech.js?v=202611152010"></script>
+  <script src="js/en-words.js?v=202611152010"></script>
+  <script src="js/hsk-data.js?v=202611152010"></script>
+  <script src="js/grammar-data.js?v=202611152010"></script>
+  <script src="js/grammar-ui.js?v=202611152010"></script>
   <script>
     const t = new URLSearchParams(location.search).get('t') || 'verbs';
     const isVerbs = t === 'verbs';
-    const isEn = /^en-/.test(t);
+    const isMy = /^my-/.test(t);
+    const isEn = /^en-/.test(t) || t === 'my-en';
     const back = isVerbs || isEn ? 'english' : 'chinese';
+    const speakLang = back === 'english' ? 'en' : 'zh';
     if (isEn) document.body.classList.add('en-words');
     const learnedKey = 'learned:' + t, missKey = 'miss:' + t, groupKey = 'groups:' + t;
 
@@ -72,6 +75,8 @@
     let ALL = [];
     if (isVerbs) {
       VERBS.forEach(([g, list]) => list.forEach(([a, b, c, ru]) => ALL.push({ id: a, group: g, a, b, c, ru })));
+    } else if (isMy) {
+      store.get('mywords:' + t.slice(3), []).slice().reverse().forEach((w, i) => ALL.push({ id: w.w, group: w.set || 'Без набора', han: w.w, py: w.tr || '', ru: w.ru, n: i + 1 }));
     } else if (isEn) {
       EN_WORDS[t.slice(3)].trim().split('\n').forEach((line, i) => {
         const [en, ru] = line.split('|');
@@ -82,14 +87,15 @@
     }
     const GROUPS = [...new Set(ALL.map((w) => w.group))];
 
-    const NAMES = { verbs: 'Глаголы', 'en-a2': 'English A2', 'en-b1': 'English B1', hsk3: 'HSK3', hsk4: 'HSK4' };
-    document.getElementById('title').textContent = isVerbs ? 'Irregular verbs' : isEn ? 'Words ' + t.slice(3).toUpperCase() : t.toUpperCase();
-    document.getElementById('sub').textContent = isVerbs ? 'неправильные глаголы с твоего листка' : isEn ? 'частые английские слова уровня ' + t.slice(3).toUpperCase() : (t === 'hsk3' ? 'словарь HSK 3 (3.0)' : 'словарь HSK 4 (3.0)');
+    const NAMES = { verbs: 'Глаголы', 'en-a2': 'English A2', 'en-b1': 'English B1', hsk3: 'HSK3', hsk4: 'HSK4', 'my-en': 'Мои слова', 'my-zh': 'Мои слова' };
+    document.getElementById('title').textContent = isMy ? (isEn ? 'My words' : '我的词') : isVerbs ? 'Irregular verbs' : isEn ? 'Words ' + t.slice(3).toUpperCase() : t.toUpperCase();
+    document.getElementById('sub').textContent = isMy ? 'слова, которые ты добавила сама' : isVerbs ? 'неправильные глаголы с твоего листка' : isEn ? 'частые английские слова уровня ' + t.slice(3).toUpperCase() : (t === 'hsk3' ? 'словарь HSK 3 (3.0)' : 'словарь HSK 4 (3.0)');
     document.title = NAMES[t] + ' · тренажёр';
     document.getElementById('nav').append(
       h('a', { href: 'section.html?s=' + back }, '‹ ' + (back === 'english' ? 'English' : '中文')),
-      ...(back === 'english' ? ['en-a2', 'en-b1', 'verbs'] : ['hsk3', 'hsk4']).map((k) => h('a', { href: 'trainer.html?t=' + k, class: k === t ? 'on' : '' }, NAMES[k])),
-      back === 'chinese' ? h('a', { href: 'grammar.html' }, 'Грамматика') : h('a', { href: 'english.html#practice' }, 'Грамматика'));
+      ...(back === 'english' ? ['my-en', 'en-a2', 'en-b1', 'verbs'] : ['my-zh', 'hsk3', 'hsk4']).map((k) => h('a', { href: 'trainer.html?t=' + k, class: k === t ? 'on' : '' }, NAMES[k])),
+      back === 'chinese' ? h('a', { href: 'grammar.html' }, 'Грамматика') : h('a', { href: 'english.html#practice' }, 'Грамматика'),
+      h('a', { href: 'words.html?lang=' + speakLang }, '＋ добавить слова'));
 
     const learned = () => new Set(store.get(learnedKey, []));
     const setLearned = (id, on) => {
@@ -101,7 +107,8 @@
     const addMiss = (id, d) => { const m = misses(); m[id] = Math.max(0, (m[id] || 0) + d); if (!m[id]) delete m[id]; store.set(missKey, m); };
 
     // Выбор групп (по умолчанию для HSK первые 50 слов, для глаголов все).
-    let picked = new Set(store.get(groupKey, isVerbs ? GROUPS : [GROUPS[0]]));
+    let picked = new Set(store.get(groupKey, isVerbs || isMy ? GROUPS : [GROUPS[0]]).filter((g) => GROUPS.includes(g)));
+    if (!picked.size && GROUPS.length) picked = new Set(isMy ? GROUPS : [GROUPS[0]]);
     let filter = 'new';
     const groupsEl = document.getElementById('groups');
     function renderGroups() {
@@ -139,6 +146,7 @@
     let mode = 'cards', queue = [];
 
     function done() {
+      if (!ALL.length) return modeEl.replaceChildren(h('div', { class: 'quiz' }, h('p', {}, 'Пока нет своих слов.'), h('a', { class: 'btn', href: 'words.html?lang=' + speakLang }, '＋ Добавить слова')));
       modeEl.replaceChildren(h('div', { class: 'quiz' },
         h('p', { class: 'q' }, '♥'),
         h('p', {}, filter === 'miss' ? 'Ошибок на повтор нет. Умница.' : 'В этой подборке всё пройдено. Выбери другие группы или «все».')));
@@ -149,10 +157,13 @@
       const w = queue[0];
       const front = isVerbs
         ? [h('div', { class: 'big' }, w.a), h('div', { class: 'small' }, w.ru)]
-        : [h('div', { class: 'big han' }, w.han), h('div', { class: 'small' }, '№ ' + w.n)];
+        : [h('div', { class: 'big han' }, w.han), h('div', { class: 'small' }, isMy ? w.group : '№ ' + w.n)];
+      front.push(sayBtn(isVerbs ? w.a : w.han, speakLang));
       const backSide = isVerbs
         ? [h('div', { class: 'big' }, w.b), h('div', { class: 'mid' }, w.c), h('div', { class: 'small' }, w.group)]
         : [h('div', { class: 'mid' }, w.py), h('div', { class: 'big', style: 'font-size:28px' }, w.ru)];
+      backSide.push(sayBtn(isVerbs ? w.a + ', ' + w.b + ', ' + w.c : w.han, speakLang));
+      if (store.get('autosay', true)) setTimeout(() => say(isVerbs ? w.a : w.han, speakLang), 150);
       const flash = h('div', { class: 'flash', onclick: () => { flash.classList.add('flipping'); setTimeout(() => flash.classList.toggle('flipped'), 120); setTimeout(() => flash.classList.remove('flipping'), 300); } },
         h('div', { class: 'flash-inner' }, h('div', { class: 'face' }, ...front, h('div', { class: 'small' }, 'нажми, чтобы перевернуть')), h('div', { class: 'face back' }, ...backSide)));
       const next = (know) => {
@@ -195,7 +206,7 @@
         };
         [i2, i3].forEach((i) => i.addEventListener('keydown', (e) => { if (e.key === 'Enter') (i === i2 && !i3.value ? i3.focus() : check()); }));
         modeEl.replaceChildren(h('div', { class: 'quiz' },
-          h('p', { class: 'q' }, w.a), h('p', { class: 'muted' }, w.ru),
+          h('p', { class: 'q' }, w.a, ' ', sayBtn(w.a, 'en')), h('p', { class: 'muted' }, w.ru),
           h('div', { class: 'quiz-inputs' }, i2, i3),
           h('button', { class: 'btn', onclick: check }, 'Проверить'), fb));
         i2.focus();
@@ -217,7 +228,7 @@
           finish(o === w);
         } }, rev ? o.han : o.ru));
         modeEl.replaceChildren(h('div', { class: 'quiz' },
-          h('p', { class: rev ? 'q' : 'q han' }, rev ? w.ru : w.han), h('p', { class: 'muted' }, rev ? 'выбери слово' : 'выбери перевод'),
+          h('p', { class: rev ? 'q' : 'q han' }, rev ? w.ru : w.han, rev ? null : sayBtn(w.han, speakLang)), h('p', { class: 'muted' }, rev ? 'выбери слово' : 'выбери перевод'),
           h('div', { class: 'options' }, btns), fb));
       }
     }
@@ -251,8 +262,8 @@
         if (w.group !== lastGroup) { rows.push(h('tr', { class: 'grp' }, h('td', { colspan: 4 }, w.group))); lastGroup = w.group; }
         const tr = h('tr', { class: L.has(w.id) ? 'learned' : '', title: 'Нажми, чтобы отметить выученным', style: 'cursor:pointer', onclick: () => { setLearned(w.id, !learned().has(w.id)); stats(); renderTable(); } },
           ...(isVerbs
-            ? [h('td', {}, h('b', {}, w.a)), h('td', {}, w.b), h('td', {}, w.c), h('td', { class: 'muted' }, w.ru)]
-            : [h('td', { class: 'h' }, w.han), h('td', {}, w.py), h('td', { class: 'muted' }, w.ru)]));
+            ? [h('td', {}, sayBtn(w.a + ', ' + w.b + ', ' + w.c, 'en')), h('td', {}, h('b', {}, w.a)), h('td', {}, w.b), h('td', {}, w.c), h('td', { class: 'muted' }, w.ru)]
+            : [h('td', {}, sayBtn(w.han, speakLang)), h('td', { class: 'h' }, w.han), h('td', {}, w.py), h('td', { class: 'muted' }, w.ru)]));
         rows.push(tr);
       });
       table.replaceChildren(...rows);
@@ -276,9 +287,11 @@
       el.textContent = (n >= 25 ? '✓ ' : '') + 'Сегодня выучено: ' + n + ' / 25 слов (' + (lang === 'en' ? 'английский' : 'китайский') + ')';
     };
     document.addEventListener('store-change', (e) => { if (/^learned:/.test(e.detail)) dayWords(); });
+    const auto = h('label', { class: 'autosay' }, h('input', { type: 'checkbox', checked: store.get('autosay', true), onchange: (e) => store.set('autosay', e.target.checked) }), ' 🔊 озвучивать карточки сами');
+    document.getElementById('tabs').after(auto);
     renderTabs();
     start();
   </script>
-  <script src="js/effects.js?v=202611060104"></script>
+  <script src="js/effects.js?v=202611152010"></script>
 </body>
 </html>

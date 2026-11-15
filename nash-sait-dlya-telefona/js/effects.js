@@ -232,7 +232,7 @@
     const a = e.target.closest('a[href]');
     if (!a || !on || e.defaultPrevented || e.metaKey || e.ctrlKey || e.shiftKey || a.target === '_blank') return;
     const href = a.getAttribute('href');
-    if (!/^(index|section|trainer|grammar|english)\.html/.test(href)) return;
+    if (!/^(index|section|trainer|grammar|english|words)\.html/.test(href)) return;
     e.preventDefault();
     if (a.classList.contains('petal-hit')) celebrate(e.clientX, e.clientY);
     document.body.classList.add('fx-leaving');
